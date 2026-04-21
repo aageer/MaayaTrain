@@ -1,0 +1,36 @@
+# MaayaTrain default configuration
+# Override via CLI flags or by editing this file.
+
+[model]
+name = "gpt2-small"
+
+[dataset]
+path = "./data/wikitext.txt"
+seq_length = 512
+
+[training]
+batch_size = 8
+max_steps = 100000
+checkpoint_dir = "./checkpoints"
+checkpoint_every = 1000
+log_every = 10
+seed = 42
+
+[diloco]
+inner_steps = 500
+inner_lr = 0.0003
+inner_optimizer = "adamw"
+inner_weight_decay = 0.1
+outer_lr = 0.7
+outer_momentum = 0.9
+nesterov = true
+gradient_compression = true
+compress_fp16 = true
+
+[network]
+port = 7471
+heartbeat_interval = 5
+
+[dashboard]
+port = 8471
+enabled = false

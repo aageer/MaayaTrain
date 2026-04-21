@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "maayatrain"
+version = "0.2.0"
+description = "Cross-platform distributed ML training using the DiLoCo algorithm"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Akhil Ageer" },
+]
+keywords = ["distributed", "training", "machine-learning", "diloco", "pytorch"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.2",
+    "safetensors>=0.4",
+    "typer[all]>=0.9",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "zeroconf>=0.100",
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.24",
+    "websockets>=12.0",
+    "httpx>=0.25",
+    "rich>=13.0",
+    "numpy>=1.24",
+    "zstandard>=0.22",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.1",
+]
+website = [
+    "sqlmodel>=0.0.14",
+    "python-jose[cryptography]>=3.3",
+]
+
+[project.scripts]
+maayatrain = "maayatrain.app:main"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
