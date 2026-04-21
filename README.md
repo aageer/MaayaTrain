@@ -1,16 +1,16 @@
 # ⚡ MaayaTrain
 
-**Cross-platform distributed ML training using the DiLoCo algorithm.**
+**Cross-platform distributed LLM training using the DiLoCo algorithm with SOTA optimizations.**
 
-Train machine learning models across multiple devices — Mac, Windows, Linux — over regular Wi-Fi. Uses the DiLoCo algorithm to reduce network traffic by **500×** compared to traditional distributed training, making collaborative training practical on consumer hardware.
+Train machine learning models across multiple devices — Mac, Windows, Linux — over regular Wi-Fi. Uses the DiLoCo algorithm to reduce network traffic by **500×** compared to traditional distributed training, with block-wise quantization, compute-proportional aggregation, and network-aware streaming that make collaborative training practical on consumer hardware.
 
-> Created by **Akhil Ageer**.
+> Created by **Akhil Ageer** · [GitHub](https://github.com/aageer/MaayaTrain)
 
 ---
 
 ## Table of Contents
 
-1. [What's New in v0.2](#whats-new-in-v02)
+1. [What's New in v0.3](#whats-new-in-v03)
 2. [Installation](#installation)
 3. [Quick Start (Single Device)](#quick-start-single-device)
 4. [Multi-Device Training (Step-by-Step)](#multi-device-training-step-by-step)
@@ -21,22 +21,57 @@ Train machine learning models across multiple devices — Mac, Windows, Linux �
 9. [Configuration](#configuration)
 10. [How DiLoCo Works](#how-diloco-works)
 11. [Project Architecture](#project-architecture)
-12. [Troubleshooting](#troubleshooting)
+12. [Testing](#testing)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
-## What's New in v0.2
+## What's New in v0.3
+
+### Phase 1: Core Optimizations
 
 | Feature | What it Does | Research Basis |
 |---------|-------------|----------------|
-| 🔥 **Mixed Precision (AMP)** | 2× faster training, 50% less memory | PyTorch AMP, bfloat16 auto-detect |
-| 📈 **Cosine Warmup LR** | Better convergence, avoids early divergence | GPT-3, Chinchilla training recipes |
-| 🔄 **Gradient Accumulation** | Train with larger effective batch sizes on small GPUs | Standard DDP technique |
-| 📡 **Streaming Sync** | 100× less peak bandwidth during sync | Streaming DiLoCo (DeepMind, 2025) |
-| 🗜️ **INT8 Compression** | 8–12× gradient compression (vs 4-6× for FP16) | Per-tensor affine quantization |
-| 🛡️ **Byzantine Tolerance** | Tolerates up to 1/3 faulty/malicious workers | Coordinate-wise median aggregation |
-| 📝 **BPE Tokenizer** | Production-quality text tokenization | Sennrich et al. (2016) BPE algorithm |
-| 📊 **GPU Memory Tracking** | Monitor VRAM usage during training | PyTorch peak memory stats |
+| 🗜️ **Zstandard Compression** | Multi-threaded compression (replaces gzip), ~3× faster | Facebook's zstd (level=3, threads=-1) |
+| 🧮 **Chunked Median Aggregation** | OOM-safe median over 5M-element chunks | Stream processing for consumer RAM |
+| ⚡ **FlashAttention-2** | Hardware-native `F.scaled_dot_product_attention` | FlashAttention (Dao et al., 2023) |
+| 🔧 **torch.compile** | JIT compilation with graceful MPS/CPU fallback | PyTorch 2.x compiler |
+
+### Phase 2: Block-Wise INT8 Quantization
+
+| Feature | What it Does | Research Basis |
+|---------|-------------|----------------|
+| 🎯 **Block-Wise INT8** | 128-element blocks with per-block FP16 scale/min | bitsandbytes/QLoRA block-wise design |
+| 🛡️ **Outlier Resilience** | Independent scaling prevents single-outlier quality loss | Dettmers et al. (2023) |
+| 📦 **Efficient Serialization** | `io.BytesIO` + `torch.save` transport (no struct.pack) | — |
+
+### Phase 3: Compute-Proportional Async Aggregation
+
+| Feature | What it Does | Research Basis |
+|---------|-------------|----------------|
+| ⏱️ **Time-Bounded Training** | Workers train for N seconds instead of fixed steps | Heterogeneous hardware support |
+| ⚖️ **Weighted Aggregation** | `weight_k = steps_k / total_steps` — fast devices contribute more | Federated learning literature |
+| 🛡️ **FP32 Safe Accumulation** | Forces `.float()` to prevent FP16 overflow (max 65,504) | Production hardening |
+
+### Phase 4: Network-Aware Dynamic Streaming
+
+| Feature | What it Does | Research Basis |
+|---------|-------------|----------------|
+| 📡 **RTT Tracking** | Rolling 10-sample heartbeat latency measurement | Network-aware distributed systems |
+| 🔄 **Dynamic Re-Sharding** | Auto-adjusts streaming shards (1–16) based on cluster RTT | Adaptive bandwidth management |
+| 📢 **Broadcast Protocol** | `current_streaming_shards` in SYNC_REQUEST header | Cluster-wide consensus |
+
+### Previous Features (v0.2)
+
+| Feature | What it Does |
+|---------|-------------|
+| 🔥 **Mixed Precision (AMP)** | 2× faster training, 50% less memory |
+| 📈 **Cosine Warmup LR** | Better convergence, avoids early divergence |
+| 🔄 **Gradient Accumulation** | Train with larger effective batch sizes on small GPUs |
+| 📡 **Streaming Sync** | 100× less peak bandwidth during sync |
+| 🛡️ **Byzantine Tolerance** | Tolerates up to 1/3 faulty/malicious workers |
+| 📝 **BPE Tokenizer** | Production-quality text tokenization |
+| 📊 **GPU Memory Tracking** | Monitor VRAM usage during training |
 
 ---
 
@@ -46,13 +81,13 @@ Train machine learning models across multiple devices — Mac, Windows, Linux �
 
 - **Python 3.10+** (check with `python3 --version`)
 - **pip** (check with `pip --version` or `pip3 --version`)
-- **Git** (optional, for cloning)
+- **Git** (for cloning)
 
 ### Option A: Install from source (recommended)
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/MaayaTrain.git
+git clone https://github.com/aageer/MaayaTrain.git
 cd MaayaTrain
 
 # 2. Create a virtual environment
@@ -93,6 +128,7 @@ MaayaTrain installs everything it needs — no manual dependency management:
 | `fastapi` + `uvicorn` | Dashboard server |
 | `httpx` | HTTP client for relay discovery |
 | `numpy` | Tensor serialization |
+| `zstandard` | Multi-threaded zstd compression |
 
 ---
 
@@ -156,7 +192,7 @@ maayatrain start \
 You'll see output like:
 
 ```
-⚡ MaayaTrain v0.2.0
+⚡ MaayaTrain v0.3.0
 Device: Apple M4 | 16.0 GB | ~4.6 TFLOPS | MPS | Darwin
 Model: gpt2-small (28.5M parameters)
 Mixed precision: float16 (AMP enabled)
@@ -183,16 +219,6 @@ maayatrain join auto --dataset ./data/wikitext.txt
 ```bash
 # Replace with your coordinator's actual IP address:
 maayatrain join 192.168.1.100:7471 --dataset ./data/wikitext.txt
-```
-
-You'll see:
-
-```
-⚡ MaayaTrain v0.2.0
-Device: NVIDIA RTX 4090 | 24.0 GB | ~82.6 TFLOPS | CUDA | Linux
-Mixed precision: bfloat16 (AMP enabled)
-Found coordinator: gpt2-small at 192.168.1.100:7471
-Connecting…
 ```
 
 ### Step 4: Watch training progress
@@ -281,6 +307,20 @@ batch_size = 4                      # Micro-batch per step
 gradient_accumulation_steps = 8     # Effective batch = 4 × 8 = 32
 ```
 
+### Block-Wise INT8 Gradient Compression
+
+Enable aggressive compression that preserves gradient quality using 128-element block-wise quantization with independent per-block FP16 scale/min values:
+
+```toml
+[diloco]
+compress_int8 = true   # 8-12× compression (vs 4-6× with FP16)
+```
+
+| Mode | Compression | Quality Impact |
+|------|------------|----------------|
+| FP16 + zstd | ~4–6× | Negligible |
+| INT8 + zstd (block-wise) | ~8–12× | Very small — outlier-resilient |
+
 ### Streaming Sync (Streaming DiLoCo)
 
 Instead of syncing all 124M parameters at once (bandwidth spike), split into K shards and sync them sequentially during training:
@@ -290,22 +330,36 @@ Instead of syncing all 124M parameters at once (bandwidth spike), split into K s
 streaming_shards = 4   # Sync 1/4 of params at a time
 ```
 
-Reduces **peak bandwidth** by K× while maintaining convergence.
+Reduces **peak bandwidth** by K× while maintaining convergence. The shard count is automatically adjusted based on network latency (see Dynamic Re-Sharding below).
 
-### INT8 Gradient Compression
+### Dynamic Re-Sharding (Network-Aware)
 
-Enable aggressive compression for very slow networks (the algorithm
-uses per-tensor min-max affine quantization):
+The coordinator tracks round-trip time (RTT) to all workers via heartbeat probes and automatically adjusts the streaming shard count:
+
+| Cluster RTT | Action | Rationale |
+|-------------|--------|-----------|
+| > 150ms | K × 2 (max 16) | Reduce per-message payload on congested Wi-Fi |
+| < 30ms | K ÷ 2 (min 1) | Reduce Python loop overhead on fast networks |
+| 30–150ms | No change | Acceptable range |
+
+The `current_streaming_shards` count is broadcast to all workers in the `SYNC_REQUEST` header so the entire cluster uses the same partition map.
+
+### Time-Bounded Async Aggregation
+
+For clusters with severely heterogeneous hardware (e.g., M4 Pro + 2019 MacBook Air), use time-bounded sync mode:
 
 ```toml
 [diloco]
-compress_int8 = true   # 8-12× compression (vs 4-6× with FP16)
+sync_mode = "time"            # Instead of fixed steps
+sync_window_seconds = 60.0    # Each worker trains for 60 seconds
 ```
 
-| Mode | Compression | Quality Impact |
-|------|------------|----------------|
-| FP16 + gzip | ~4–6× | Negligible |
-| INT8 + gzip | ~8–12× | Very small (~1% error) |
+Workers that complete more steps in the window contribute proportionally more to the aggregated gradient:
+
+```
+Worker A (M4 Pro):  347 steps → weight = 347/459 = 0.756
+Worker B (Air):     112 steps → weight = 112/459 = 0.244
+```
 
 ### Byzantine Fault Tolerance
 
@@ -315,6 +369,8 @@ Protect against faulty or malicious workers with coordinate-wise median aggregat
 [diloco]
 aggregation = "median"   # Tolerates up to 1/3 bad workers
 ```
+
+Uses stream-chunked median (5M-element chunks) to avoid OOM on consumer hardware.
 
 ### BPE Tokenizer
 
@@ -435,13 +491,16 @@ outer_momentum = 0.9                # Momentum coefficient
 nesterov = true                     # Use Nesterov momentum
 gradient_compression = true         # Compress pseudo-gradients
 compress_fp16 = true                # FP16 compression (default)
-compress_int8 = false               # INT8 compression (more aggressive)
-streaming_shards = 1                # 1 = off, 4+ = streaming sync
+compress_int8 = false               # Block-wise INT8 (128-element blocks)
+streaming_shards = 1                # 1 = off, 2+ = streaming sync (auto-adjusted by RTT)
 aggregation = "mean"                # "mean" or "median" (Byzantine-tolerant)
+sync_mode = "steps"                 # "steps" = fixed H, "time" = time-bounded
+sync_window_seconds = 60.0          # Seconds per window when sync_mode = "time"
 
 [network]
 port = 7471
 heartbeat_interval = 5
+bind_address = "0.0.0.0"
 
 [dashboard]
 port = 8471
@@ -469,14 +528,25 @@ for step in range(500):     # Train locally for 500 steps
     θ_local -= α · AdamW(∇loss)
 ```
 
-**Outer loop** (coordinator averages all devices):
+**Outer loop** (coordinator aggregates all devices):
 ```
-Δθ_avg = mean(θ_global − θ_local_1, ..., θ_global − θ_local_n)
+Δθ_avg = aggregate(θ_global − θ_local_1, ..., θ_global − θ_local_n)
 v = β·v + Δθ_avg            # Momentum
 θ_global -= η·(Δθ_avg + β·v) # Nesterov update
 ```
 
 **Result:** Each device explores a different region of the loss landscape, then they combine their findings. It converges similarly to standard distributed training while using 500× less bandwidth.
+
+### MaayaTrain Enhancements over Standard DiLoCo
+
+| Standard DiLoCo | MaayaTrain Enhancement |
+|----------------|------------------------|
+| FP32 pseudo-gradients | Block-wise INT8 (8–12× compression) |
+| Fixed K streaming shards | Dynamic K based on cluster RTT |
+| Fixed inner step count | Time-bounded windows for heterogeneous hardware |
+| Simple mean aggregation | Weighted mean (by compute) or Byzantine-tolerant median |
+| gzip compression | Multi-threaded zstd (3× faster) |
+| Manual attention | FlashAttention-2 via SDPA |
 
 ---
 
@@ -491,19 +561,19 @@ MaayaTrain/
 │   ├── hardware.py             # Cross-platform GPU detection
 │   ├── comms/
 │   │   ├── wire_format.py      # Binary protocol (header + payload)
-│   │   ├── tensor_codec.py     # FP16/INT8 + gzip compression
-│   │   └── tcp_channel.py      # Async TCP server/client
+│   │   ├── tensor_codec.py     # FP16/INT8 + zstd compression
+│   │   └── tcp_channel.py      # Async TCP server/client + RTT tracking
 │   ├── training/
-│   │   ├── diloco.py           # DiLoCo algorithm + streaming sync
-│   │   ├── loop.py             # Training loop (AMP, grad accum, cosine LR)
+│   │   ├── diloco.py           # DiLoCo algorithm + streaming sync + weighted aggregation
+│   │   ├── loop.py             # Training loop (AMP, grad accum, cosine LR, time-bounded)
 │   │   ├── lr_schedule.py      # Cosine warmup scheduler
 │   │   ├── tokenizer.py        # BPE tokenizer
-│   │   ├── orchestrator.py     # Coordinator node logic
+│   │   ├── orchestrator.py     # Coordinator (dynamic re-sharding, RTT-adaptive)
 │   │   ├── participant.py      # Worker node logic
 │   │   ├── snapshots.py        # SafeTensors checkpointing
 │   │   └── cluster_info.py     # Cluster state tracking
 │   ├── architectures/
-│   │   ├── gpt2.py             # GPT-2 model (124M/355M/774M)
+│   │   ├── gpt2.py             # GPT-2 model (FlashAttention, torch.compile)
 │   │   └── catalog.py          # Model registry
 │   ├── discovery/
 │   │   ├── zeroconf_service.py # mDNS advertiser + browser
@@ -512,12 +582,46 @@ MaayaTrain/
 │   └── monitor/
 │       ├── server.py           # FastAPI + WebSocket dashboard
 │       └── static/index.html   # Dashboard UI
-├── tests/                      # 51 unit tests
-├── pyproject.toml              # Package config
+├── tests/                      # 75 unit tests
+├── pyproject.toml              # Package config (pip install .)
 ├── maayatrain.toml             # Default training config
 ├── LICENSE                     # MIT
 └── README.md
 ```
+
+---
+
+## Testing
+
+Run the full test suite:
+
+```bash
+# Install dev dependencies
+pip install -e ".[dev]"
+
+# Run all 75 tests
+pytest tests/ -v
+
+# Run with warnings as errors
+pytest tests/ -v -W error
+```
+
+### Test Coverage by Feature
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| `test_diloco.py` | 5 | Core DiLoCo engine (snapshot, pseudo-grad, outer step, momentum) |
+| `test_sota_features.py` | 5 | Median aggregation, streaming shards, shard equivalence |
+| `test_int8_compression.py` | 10 | Block-wise INT8 quantization, outlier resilience, padding |
+| `test_async_aggregation.py` | 9 | Time-bounded config, weighted aggregation, wire protocol |
+| `test_dynamic_sharding.py` | 11 | RTT tracking, dynamic re-sharding, threshold math |
+| `test_tensor_codec.py` | 5 | zstd compression roundtrips, ratios |
+| `test_wire_format.py` | 6 | Binary protocol encoding/decoding |
+| `test_lr_schedule.py` | 6 | Cosine warmup scheduler |
+| `test_settings.py` | 4 | TOML config loading, validation |
+| `test_tokenizer.py` | 7 | BPE tokenizer encode/decode |
+| `test_hardware.py` | 3 | Cross-platform GPU detection |
+| `test_snapshots.py` | 4 | SafeTensors checkpointing |
 
 ---
 

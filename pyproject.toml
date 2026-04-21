@@ -4,15 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "maayatrain"
-version = "0.2.0"
-description = "Cross-platform distributed ML training using the DiLoCo algorithm"
+version = "0.3.0"
+description = "Cross-platform distributed LLM training using DiLoCo with SOTA optimizations"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
 authors = [
     { name = "Akhil Ageer" },
 ]
-keywords = ["distributed", "training", "machine-learning", "diloco", "pytorch"]
+keywords = [
+    "distributed", "training", "machine-learning", "diloco", "pytorch",
+    "llm", "streaming-diloco", "quantization", "byzantine-tolerance",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -52,6 +55,11 @@ website = [
     "sqlmodel>=0.0.14",
     "python-jose[cryptography]>=3.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/aageer/MaayaTrain"
+Repository = "https://github.com/aageer/MaayaTrain"
+Issues = "https://github.com/aageer/MaayaTrain/issues"
 
 [project.scripts]
 maayatrain = "maayatrain.app:main"

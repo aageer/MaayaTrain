@@ -1,5 +1,5 @@
 # MaayaTrain default configuration
-# Override via CLI flags or by editing this file.
+# See README.md for full documentation of all options.
 
 [model]
 name = "gpt2-small"
@@ -15,6 +15,11 @@ checkpoint_dir = "./checkpoints"
 checkpoint_every = 1000
 log_every = 10
 seed = 42
+mixed_precision = "auto"
+gradient_accumulation_steps = 1
+warmup_steps = 0                    # 0 = auto (10% of inner_steps)
+min_lr_ratio = 0.1
+max_grad_norm = 1.0
 
 [diloco]
 inner_steps = 500
@@ -26,10 +31,16 @@ outer_momentum = 0.9
 nesterov = true
 gradient_compression = true
 compress_fp16 = true
+compress_int8 = false               # Block-wise INT8 (128-element blocks)
+streaming_shards = 1                # 1 = off, 2+ = streaming sync
+aggregation = "mean"                # "mean" or "median" (Byzantine-tolerant)
+sync_mode = "steps"                 # "steps" = fixed H, "time" = time-bounded
+sync_window_seconds = 60.0          # Seconds per window when sync_mode = "time"
 
 [network]
 port = 7471
 heartbeat_interval = 5
+bind_address = "0.0.0.0"
 
 [dashboard]
 port = 8471
