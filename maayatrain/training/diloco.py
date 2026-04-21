@@ -174,9 +174,11 @@ class DiLoCoEngine:
                     )
                 else:
                     # Mean: accumulate in-place to avoid stacking full tensors
-                    delta_agg = pseudo_gradient_list[0][name].to(self.device).clone()
+                    # Force FP32 to prevent FP16 overflow (max 65504) when
+                    # summing many workers' gradients.
+                    delta_agg = pseudo_gradient_list[0][name].to(self.device).float()
                     for pg in pseudo_gradient_list[1:]:
-                        delta_agg.add_(pg[name].to(self.device))
+                        delta_agg.add_(pg[name].to(self.device).float())
                     delta_agg.div_(n_workers)
 
                 # Momentum update: v = β·v + Δθ_agg
@@ -264,9 +266,11 @@ class DiLoCoEngine:
         with torch.no_grad():
             for name, param in self.model.named_parameters():
                 # Weighted sum: Σ weight_k · grad_k (in-place accumulation)
-                delta_agg = pseudo_gradient_list[0][name].to(self.device) * weights[0]
+                # Force FP32 to prevent FP16 overflow (max 65504) when
+                # accumulating many workers' weighted gradients.
+                delta_agg = pseudo_gradient_list[0][name].to(self.device).float() * weights[0]
                 for pg, w in zip(pseudo_gradient_list[1:], weights[1:]):
-                    delta_agg.add_(pg[name].to(self.device), alpha=w)
+                    delta_agg.add_(pg[name].to(self.device).float(), alpha=w)
 
                 # Momentum + parameter update (same as apply_outer_step)
                 if name not in self._momentum_buffer:
@@ -354,9 +358,10 @@ class DiLoCoEngine:
                         device=self.device,
                     )
                 else:
-                    delta_agg = pseudo_gradient_list[0][name].to(self.device).clone()
+                    # Force FP32 to prevent FP16 overflow during accumulation
+                    delta_agg = pseudo_gradient_list[0][name].to(self.device).float()
                     for pg in pseudo_gradient_list[1:]:
-                        delta_agg.add_(pg[name].to(self.device))
+                        delta_agg.add_(pg[name].to(self.device).float())
                     delta_agg.div_(n_workers)
 
                 if name not in self._momentum_buffer:
@@ -453,7 +458,9 @@ def _chunked_median(
         chunk_stack = torch.stack(
             [f[start:end].to(device) for f in flats]
         )
-        out[start:end] = chunk_stack.median(dim=0).values
+        # .clone() breaks any reference chain from the median return tuple
+        # back to chunk_stack, ensuring del actually frees memory.
+        out[start:end] = chunk_stack.median(dim=0).values.clone()
         del chunk_stack  # free immediately
 
     return out.reshape(ref_shape)
