@@ -501,14 +501,17 @@ def quickstart(
             raise typer.Exit(1)
 
         host, port = peer.host, peer.port
-        console.print(f"[green]Found coordinator: {peer.model} at {host}:{port}[/green]")
+        model_name = peer.model  # Use coordinator's model, NOT local default
+        console.print(f"[green]Found coordinator: {model_name} at {host}:{port}[/green]")
 
         from .training.loop import SimpleTextDataset
         ds = SimpleTextDataset(dataset, seq_length=settings.dataset.seq_length, device=str(hw.device))
 
         from .architectures.catalog import create_model
-        mdl = create_model(settings.model.name, vocab_size=ds.vocab_size, seq_length=settings.dataset.seq_length)
+        mdl = create_model(model_name, vocab_size=ds.vocab_size, seq_length=settings.dataset.seq_length)
         mdl.to(hw.device)
+        param_m = sum(p.numel() for p in mdl.parameters()) / 1e6
+        console.print(f"[cyan]Model:[/cyan] {model_name} ({param_m:.1f}M parameters)")
 
         from .training.participant import Participant
         worker = Participant(mdl, settings, hw, ds)

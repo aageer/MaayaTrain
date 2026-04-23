@@ -45,6 +45,7 @@ class PeerConnection:
     last_heartbeat: float = field(default_factory=time.time)
     _rtt_samples: Deque[float] = field(default_factory=lambda: deque(maxlen=_RTT_WINDOW))
     _pending_heartbeat_ts: Optional[float] = field(default=None)
+    _write_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     def record_rtt(self, rtt_ms: float) -> None:
         """Record a single RTT measurement in milliseconds."""
@@ -58,11 +59,16 @@ class PeerConnection:
         return sum(self._rtt_samples) / len(self._rtt_samples)
 
     async def send(self, data: bytes) -> None:
-        """Write raw bytes and drain, chunking large payloads."""
-        CHUNK = 1024 * 1024  # 1 MB chunks
-        for i in range(0, len(data), CHUNK):
-            self.writer.write(data[i : i + CHUNK])
-            await self.writer.drain()
+        """Write raw bytes and drain, chunking large payloads.
+
+        Uses a lock to prevent concurrent writes from interleaving
+        bytes on the TCP stream (e.g. heartbeat vs weight transfer).
+        """
+        async with self._write_lock:
+            CHUNK = 1024 * 1024  # 1 MB chunks
+            for i in range(0, len(data), CHUNK):
+                self.writer.write(data[i : i + CHUNK])
+                await self.writer.drain()
 
     async def send_frame(
         self,

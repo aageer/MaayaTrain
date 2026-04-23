@@ -128,32 +128,39 @@ class Participant:
         # 1. Snapshot global params (received from coordinator)
         self.diloco.snapshot_global()
 
-        # 2. Train locally
+        # 2. Train locally (in a thread so asyncio stays responsive for heartbeats)
         self.diloco.reset_inner_optimizer()
+        loop = asyncio.get_running_loop()
 
         if sync_mode == "time":
             window = self.settings.diloco.sync_window_seconds
-            metrics, local_steps_completed = train_steps_timed(
-                self.model,
-                self.diloco.inner_optimizer,
-                self.dataset,
-                window_seconds=window,
-                batch_size=self.settings.training.batch_size,
-                device=self.device,
-                start_step=self.global_step,
-                log_every=self.settings.training.log_every,
-                estimated_steps=H,
+            metrics, local_steps_completed = await loop.run_in_executor(
+                None,
+                lambda: train_steps_timed(
+                    self.model,
+                    self.diloco.inner_optimizer,
+                    self.dataset,
+                    window_seconds=window,
+                    batch_size=self.settings.training.batch_size,
+                    device=self.device,
+                    start_step=self.global_step,
+                    log_every=self.settings.training.log_every,
+                    estimated_steps=H,
+                ),
             )
         else:
-            metrics = train_steps(
-                self.model,
-                self.diloco.inner_optimizer,
-                self.dataset,
-                num_steps=H,
-                batch_size=self.settings.training.batch_size,
-                device=self.device,
-                start_step=self.global_step,
-                log_every=self.settings.training.log_every,
+            metrics = await loop.run_in_executor(
+                None,
+                lambda: train_steps(
+                    self.model,
+                    self.diloco.inner_optimizer,
+                    self.dataset,
+                    num_steps=H,
+                    batch_size=self.settings.training.batch_size,
+                    device=self.device,
+                    start_step=self.global_step,
+                    log_every=self.settings.training.log_every,
+                ),
             )
             local_steps_completed = H
 
