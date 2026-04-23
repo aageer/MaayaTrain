@@ -196,8 +196,8 @@ class Participant:
         elif frame.kind == MsgKind.SYNC_REQUEST:
             step = frame.header.get("step", 0)
             self.global_step = step
-            # The actual inner loop will run when _awaiting_sync is set
-            # (weights should have been received before this)
+            # Signal the training loop to start/continue
+            self._awaiting_sync.set()
 
         elif frame.kind == MsgKind.PEER_LEAVE:
             logger.info("Coordinator sent PEER_LEAVE — stopping")

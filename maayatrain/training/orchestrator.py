@@ -367,7 +367,15 @@ class Orchestrator:
         logger.info("Sending weights to %s (%d MB)…", conn.peer_id, len(payload) // (1024*1024))
         await conn.send_frame(MsgKind.MODEL_WEIGHTS, self.peer_id, payload, compression=tag)
         conn.last_heartbeat = time.time()  # refresh again after send completes
-        logger.info("Weights sent successfully to %s", conn.peer_id)
+        # Send SYNC_REQUEST so the worker starts training immediately
+        # (without this, mid-round joiners receive weights but never
+        #  start because _awaiting_sync only triggers on SYNC_REQUEST
+        #  in the main training loop)
+        await conn.send_frame(
+            MsgKind.SYNC_REQUEST, self.peer_id,
+            extra={"step": self.global_step},
+        )
+        logger.info("Weights + sync_request sent to %s — worker should start training", conn.peer_id)
 
     def _save_checkpoint(self) -> None:
         """Save a training checkpoint."""
