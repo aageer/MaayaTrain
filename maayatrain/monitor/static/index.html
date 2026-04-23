@@ -1,538 +1,374 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MaayaTrain Dashboard</title>
-    <meta name="description" content="Real-time distributed ML training dashboard for MaayaTrain">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MaayaTrain — Distributed Training Dashboard</title>
+<meta name="description" content="Real-time distributed ML training dashboard for MaayaTrain">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#09090b;--bg2:#18181b;--bg3:#27272a;--bg4:#3f3f46;
+--border:#2e2e33;--border2:#3f3f46;
+--text:#fafafa;--text2:#a1a1aa;--text3:#71717a;
+--emerald:#10b981;--emerald-bg:rgba(16,185,129,.12);
+--blue:#3b82f6;--blue-bg:rgba(59,130,246,.1);
+--violet:#8b5cf6;--amber:#f59e0b;--rose:#f43f5e;
+--cyan:#06b6d4;--lime:#84cc16;
+--r:12px;--r2:16px;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-        :root {
-            --bg-primary: #0a0e17;
-            --bg-secondary: #111827;
-            --bg-card: #1a2235;
-            --bg-card-hover: #1f2a40;
-            --border: #2a3550;
-            --text-primary: #e4e8f1;
-            --text-secondary: #8892a8;
-            --text-muted: #5a6478;
-            --accent-blue: #3b82f6;
-            --accent-cyan: #06b6d4;
-            --accent-emerald: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-rose: #f43f5e;
-            --accent-violet: #8b5cf6;
-            --gradient-primary: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            --gradient-warm: linear-gradient(135deg, #f59e0b, #f43f5e);
-            --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
-            --radius: 12px;
-            --radius-sm: 8px;
-        }
+/* NAV */
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:50;backdrop-filter:blur(16px)}
+.nav-left{display:flex;align-items:center;gap:16px}
+.logo{font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px}
+.logo svg{width:24px;height:24px}
+.logo-text{background:linear-gradient(135deg,var(--emerald),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:6px 16px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;transition:.15s}
+.nav-tab:hover{color:var(--text2);background:var(--bg3)}
+.nav-tab.active{color:var(--text);background:var(--bg3)}
+.badge{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.badge-live{background:var(--emerald-bg);color:var(--emerald);border:1px solid rgba(16,185,129,.25)}
+.badge-off{background:rgba(244,63,94,.12);color:var(--rose);border:1px solid rgba(244,63,94,.25)}
+.nav-right{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace}
 
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
+/* LAYOUT */
+.main{max-width:1440px;margin:0 auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
 
-        /* Header */
-        .header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            backdrop-filter: blur(12px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+/* STAT CARDS */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:.2s}
+.stat:hover{border-color:var(--border2);transform:translateY(-1px)}
+.stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:10px}
+.stat-val{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:6px;font-weight:500}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:4px;font-family:'JetBrains Mono',monospace}
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--emerald),var(--cyan))}
+.card-body{padding:18px}
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
-        }
+/* GRID SECTIONS */
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.row-model{display:grid;grid-template-columns:2fr 1fr;gap:16px}
 
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 100px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+/* PEER CARDS */
+.peers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.peer-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;gap:12px;transition:.2s}
+.peer-card:hover{border-color:var(--emerald);box-shadow:0 0 20px rgba(16,185,129,.08)}
+.peer-avatar{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.peer-info{flex:1;min-width:0}
+.peer-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peer-detail{font-size:11px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.peer-status{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;font-weight:500}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot-on{background:var(--emerald);box-shadow:0 0 6px rgba(16,185,129,.6)}
+.dot-off{background:var(--rose)}
+.peer-metrics{display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.peer-metric{font-size:10px;color:var(--text3)}
+.peer-metric span{display:block;font-size:13px;font-weight:600;color:var(--text);font-family:'JetBrains Mono',monospace}
 
-        .status-connected {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--accent-emerald);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
+/* CHART */
+.chart-wrap{height:280px;position:relative}
 
-        .status-disconnected {
-            background: rgba(244, 63, 94, 0.15);
-            color: var(--accent-rose);
-            border: 1px solid rgba(244, 63, 94, 0.3);
-        }
+/* LOG */
+.log{max-height:300px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:12px}
+.log::-webkit-scrollbar{width:4px}
+.log::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.log-entry{padding:6px 0;border-bottom:1px solid rgba(46,46,51,.5);display:flex;gap:10px;align-items:flex-start}
+.log-time{color:var(--text3);white-space:nowrap;min-width:70px}
+.log-type{padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;white-space:nowrap}
+.log-msg{color:var(--text2);word-break:break-all}
+.t-weights{background:var(--blue-bg);color:var(--blue)}
+.t-gradient{background:rgba(139,92,246,.12);color:var(--violet)}
+.t-sync{background:var(--emerald-bg);color:var(--emerald)}
+.t-heartbeat{background:rgba(113,113,122,.15);color:var(--text3)}
+.t-peer{background:rgba(249,115,22,.12);color:#f97316}
 
-        /* Main layout */
-        .dashboard {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 24px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
+/* CKPT */
+.ckpt-list{list-style:none;max-height:240px;overflow-y:auto}
+.ckpt-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(46,46,51,.4)}
+.ckpt-step{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--cyan);min-width:80px;font-size:13px}
+.ckpt-loss{font-family:'JetBrains Mono',monospace;color:var(--text2);font-size:13px}
+.ckpt-time{font-size:11px;color:var(--text3);margin-left:auto}
 
-        .full-width { grid-column: 1 / -1; }
+/* EMPTY */
+.empty{text-align:center;padding:32px;color:var(--text3)}
+.empty-icon{font-size:24px;margin-bottom:6px}
 
-        /* Cards */
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-            transition: all 0.2s ease;
-        }
+/* MODEL CONFIG */
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.config-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.config-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.config-value{font-size:14px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--emerald)}
 
-        .card:hover {
-            background: var(--bg-card-hover);
-            box-shadow: var(--shadow-glow);
-        }
+/* PROGRESS */
+.progress-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--emerald),var(--cyan));border-radius:2px;transition:width .3s;width:0%}
 
-        .card-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+/* RESPONSIVE */
+@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.row2,.row-model{grid-template-columns:1fr}}
+@media(max-width:600px){.stats{grid-template-columns:1fr}.nav{padding:0 12px}.main{padding:12px}}
 
-        .card-title::before {
-            content: '';
-            width: 4px;
-            height: 16px;
-            border-radius: 2px;
-            background: var(--gradient-primary);
-        }
-
-        /* Stats grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 16px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 4px;
-        }
-
-        /* Chart */
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-
-        /* Peer table */
-        .peer-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .peer-table th {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            text-align: left;
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .peer-table td {
-            padding: 10px 12px;
-            font-size: 0.875rem;
-            font-family: 'JetBrains Mono', monospace;
-            border-bottom: 1px solid rgba(42, 53, 80, 0.5);
-        }
-
-        .peer-table tr:hover td {
-            background: rgba(59, 130, 246, 0.05);
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-        }
-
-        .dot-active { background: var(--accent-emerald); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
-        .dot-stale { background: var(--accent-amber); }
-
-        /* Checkpoint timeline */
-        .checkpoint-list {
-            list-style: none;
-            max-height: 250px;
-            overflow-y: auto;
-        }
-
-        .checkpoint-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(42, 53, 80, 0.3);
-        }
-
-        .checkpoint-step {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            color: var(--accent-cyan);
-            min-width: 80px;
-        }
-
-        .checkpoint-loss {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--text-secondary);
-        }
-
-        .checkpoint-time {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-left: auto;
-        }
-
-        /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
-        }
-
-        .empty-state .icon {
-            font-size: 2rem;
-            margin-bottom: 8px;
-        }
-
-        /* Animations */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .pulse { animation: pulse 2s infinite; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .fade-in { animation: fadeIn 0.3s ease; }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .dashboard { grid-template-columns: 1fr; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .header { padding: 12px 16px; }
-        }
-    </style>
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .25s ease}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 2s infinite}
+</style>
 </head>
 <body>
-    <header class="header">
-        <div class="header-left">
-            <span class="logo">⚡ MaayaTrain</span>
-            <span id="statusBadge" class="status-badge status-disconnected">Disconnected</span>
-        </div>
-        <div style="color: var(--text-muted); font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;">
-            v0.1.0
-        </div>
-    </header>
 
-    <main class="dashboard">
-        <!-- Stats Row -->
-        <div class="stats-grid full-width fade-in">
-            <div class="stat-card">
-                <div class="stat-value" id="statStep">0</div>
-                <div class="stat-label">Global Step</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="statLoss">—</div>
-                <div class="stat-label">Loss</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="statThroughput">0</div>
-                <div class="stat-label">Tokens/sec</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="statPeers">0</div>
-                <div class="stat-label">Peers</div>
-            </div>
-        </div>
+<!-- NAV -->
+<nav class="nav">
+ <div class="nav-left">
+  <div class="logo">
+   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="url(#g)" stroke="none"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs></svg>
+   <span class="logo-text">MaayaTrain</span>
+  </div>
+  <div class="nav-tabs">
+   <div class="nav-tab active">Studio</div>
+   <div class="nav-tab">Logs</div>
+   <div class="nav-tab">Config</div>
+  </div>
+ </div>
+ <div class="nav-right">
+  <span id="statusBadge" class="badge badge-off">Disconnected</span>
+  <span>v0.3.0</span>
+ </div>
+</nav>
 
-        <!-- Loss Chart -->
-        <div class="card full-width fade-in">
-            <div class="card-title">Training Loss</div>
-            <div class="chart-container">
-                <canvas id="lossChart"></canvas>
-            </div>
-        </div>
+<main class="main">
 
-        <!-- Peer Table -->
-        <div class="card fade-in">
-            <div class="card-title">Connected Peers</div>
-            <table class="peer-table">
-                <thead>
-                    <tr>
-                        <th>Status</th>
-                        <th>Device</th>
-                        <th>Memory</th>
-                        <th>TFLOPS</th>
-                    </tr>
-                </thead>
-                <tbody id="peerTableBody">
-                    <tr>
-                        <td colspan="4" class="empty-state">
-                            <div class="icon">📡</div>
-                            Waiting for peers…
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+<!-- STATS ROW -->
+<div class="stats fade-up">
+ <div class="stat">
+  <div class="stat-icon" style="background:var(--emerald-bg);color:var(--emerald)">📊</div>
+  <div class="stat-val" id="sStep">0</div>
+  <div class="stat-label">Global Step</div>
+  <div class="progress-bar"><div class="progress-fill" id="stepProgress"></div></div>
+ </div>
+ <div class="stat">
+  <div class="stat-icon" style="background:rgba(59,130,246,.1);color:var(--blue)">📉</div>
+  <div class="stat-val" id="sLoss">—</div>
+  <div class="stat-label">Training Loss</div>
+  <div class="stat-sub" id="sLossDelta"></div>
+ </div>
+ <div class="stat">
+  <div class="stat-icon" style="background:rgba(139,92,246,.1);color:var(--violet)">⚡</div>
+  <div class="stat-val" id="sTps">0</div>
+  <div class="stat-label">Tokens / sec</div>
+  <div class="stat-sub" id="sTpsUnit">throughput</div>
+ </div>
+ <div class="stat">
+  <div class="stat-icon" style="background:rgba(6,182,212,.1);color:var(--cyan)">🖥️</div>
+  <div class="stat-val" id="sPeers">1</div>
+  <div class="stat-label">Active Devices</div>
+  <div class="stat-sub">coordinator + workers</div>
+ </div>
+ <div class="stat">
+  <div class="stat-icon" style="background:rgba(245,158,11,.1);color:var(--amber)">🔄</div>
+  <div class="stat-val" id="sLR">—</div>
+  <div class="stat-label">Learning Rate</div>
+  <div class="stat-sub" id="sLRSched">cosine decay</div>
+ </div>
+</div>
 
-        <!-- Checkpoint Timeline -->
-        <div class="card fade-in">
-            <div class="card-title">Checkpoint Timeline</div>
-            <ul class="checkpoint-list" id="checkpointList">
-                <li class="empty-state">
-                    <div class="icon">💾</div>
-                    No checkpoints yet
-                </li>
-            </ul>
-        </div>
-    </main>
+<!-- MODEL + TRAINING CONFIG -->
+<div class="row-model fade-up">
+ <div class="card">
+  <div class="card-head"><div class="card-title">Training Loss</div><div style="font-size:11px;color:var(--text3)" id="chartInfo">Smoothed</div></div>
+  <div class="card-body"><div class="chart-wrap"><canvas id="lossChart"></canvas></div></div>
+ </div>
+ <div class="card">
+  <div class="card-head"><div class="card-title">Model & Training</div></div>
+  <div class="card-body">
+   <div class="config-grid">
+    <div class="config-item"><div class="config-label">Model</div><div class="config-value" id="cfgModel">gpt2-tiny</div></div>
+    <div class="config-item"><div class="config-label">Parameters</div><div class="config-value" id="cfgParams">3.3M</div></div>
+    <div class="config-item"><div class="config-label">Max Steps</div><div class="config-value" id="cfgSteps">5,000</div></div>
+    <div class="config-item"><div class="config-label">Batch Size</div><div class="config-value" id="cfgBatch">4</div></div>
+    <div class="config-item"><div class="config-label">Inner Steps</div><div class="config-value" id="cfgInner">500</div></div>
+    <div class="config-item"><div class="config-label">Sync Mode</div><div class="config-value" id="cfgSync">DiLoCo</div></div>
+    <div class="config-item"><div class="config-label">Precision</div><div class="config-value">FP16 AMP</div></div>
+    <div class="config-item"><div class="config-label">Device</div><div class="config-value" id="cfgDevice">MPS</div></div>
+   </div>
+  </div>
+ </div>
+</div>
 
-    <script>
-        // ============================================================
-        // MaayaTrain Dashboard — WebSocket-driven real-time UI
-        // ============================================================
+<!-- PEERS + DATA LOG -->
+<div class="row2 fade-up">
+ <div class="card">
+  <div class="card-head"><div class="card-title">Connected Devices</div><div id="peerCount" style="font-size:12px;color:var(--text3)">1 device</div></div>
+  <div class="card-body">
+   <div class="peers-grid" id="peersGrid">
+    <!-- Coordinator always shown -->
+    <div class="peer-card" id="coordCard">
+     <div class="peer-avatar" style="background:var(--emerald-bg);color:var(--emerald)">👑</div>
+     <div class="peer-info">
+      <div class="peer-name">This Mac (Coordinator)</div>
+      <div class="peer-detail" id="coordAddr">10.0.0.235:7471</div>
+      <div class="peer-status"><div class="dot dot-on"></div><span style="color:var(--emerald)">Training</span></div>
+      <div class="peer-metrics">
+       <div class="peer-metric">Memory<span id="coordMem">16.0 GB</span></div>
+       <div class="peer-metric">TFLOPS<span id="coordFlops">4.6</span></div>
+       <div class="peer-metric">Chip<span id="coordChip">M4</span></div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
 
-        const MAX_CHART_POINTS = 500;
-        let ws = null;
-        let lossChart = null;
-        const lossData = { labels: [], values: [] };
+ <div class="card">
+  <div class="card-head"><div class="card-title">Data Transfer Log</div><div id="logCount" style="font-size:12px;color:var(--text3)">0 events</div></div>
+  <div class="card-body">
+   <div class="log" id="transferLog">
+    <div class="empty"><div class="empty-icon">📡</div>Waiting for network activity…</div>
+   </div>
+  </div>
+ </div>
+</div>
 
-        // --- Chart Setup ---
-        function initChart() {
-            const ctx = document.getElementById('lossChart').getContext('2d');
-            lossChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: lossData.labels,
-                    datasets: [{
-                        label: 'Loss',
-                        data: lossData.values,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 0,
-                        pointHoverRadius: 4,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: { duration: 0 },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(42, 53, 80, 0.5)' },
-                            ticks: { color: '#5a6478', maxTicksLimit: 10 },
-                        },
-                        y: {
-                            grid: { color: 'rgba(42, 53, 80, 0.5)' },
-                            ticks: { color: '#5a6478' },
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        }
+<!-- CHECKPOINTS -->
+<div class="card fade-up">
+ <div class="card-head"><div class="card-title">Checkpoint Timeline</div></div>
+ <div class="card-body">
+  <ul class="ckpt-list" id="ckptList">
+   <li class="empty"><div class="empty-icon">💾</div>No checkpoints yet</li>
+  </ul>
+ </div>
+</div>
 
-        function addLossPoint(step, loss) {
-            lossData.labels.push(step);
-            lossData.values.push(loss);
-            if (lossData.labels.length > MAX_CHART_POINTS) {
-                lossData.labels.shift();
-                lossData.values.shift();
-            }
-            lossChart.update('none');
-        }
+</main>
 
-        // --- Stats ---
-        function updateStats(data) {
-            if (data.step !== undefined) document.getElementById('statStep').textContent = data.step.toLocaleString();
-            if (data.loss !== undefined) document.getElementById('statLoss').textContent = data.loss.toFixed(4);
-            if (data.tokens_per_sec !== undefined) document.getElementById('statThroughput').textContent = Math.round(data.tokens_per_sec).toLocaleString();
-        }
+<script>
+const MAX_PTS=500,MAX_LOG=100;
+let ws=null,chart=null,lossD={labels:[],values:[],smoothed:[]},prevLoss=null,logEntries=0;
 
-        function updatePeerCount(count) {
-            document.getElementById('statPeers').textContent = count;
-        }
+function initChart(){
+ const ctx=document.getElementById('lossChart').getContext('2d');
+ chart=new Chart(ctx,{type:'line',data:{labels:lossD.labels,datasets:[
+  {label:'Loss',data:lossD.values,borderColor:'rgba(59,130,246,.3)',backgroundColor:'transparent',borderWidth:1,pointRadius:0,tension:.3},
+  {label:'Smoothed',data:lossD.smoothed,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.06)',borderWidth:2.5,fill:true,pointRadius:0,tension:.4}
+ ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},interaction:{intersect:false,mode:'index'},
+  scales:{x:{grid:{color:'rgba(46,46,51,.4)'},ticks:{color:'#71717a',maxTicksLimit:8,font:{size:10}}},
+   y:{grid:{color:'rgba(46,46,51,.4)'},ticks:{color:'#71717a',font:{size:10}}}},
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'#27272a',titleColor:'#fafafa',bodyColor:'#a1a1aa',borderColor:'#3f3f46',borderWidth:1}}}});
+}
 
-        // --- Peers ---
-        function updatePeers(peers) {
-            const tbody = document.getElementById('peerTableBody');
-            // Handle both dict {id: info} and array [{...}] formats
-            let peerList;
-            if (Array.isArray(peers)) {
-                peerList = peers;
-            } else if (peers && typeof peers === 'object') {
-                peerList = Object.entries(peers).map(([id, info]) => ({
-                    id: id,
-                    status: 'active',
-                    device_name: info.device_name || info.address || id.slice(0,8),
-                    memory_gb: info.memory_gb || 0,
-                    compute_tflops: info.compute_tflops || 0,
-                    rtt_ms: info.rtt_ms || 0,
-                    ...info,
-                }));
-            } else {
-                peerList = [];
-            }
+function addLoss(step,loss){
+ lossD.labels.push(step);lossD.values.push(loss);
+ const a=.92,prev=lossD.smoothed.length?lossD.smoothed[lossD.smoothed.length-1]:loss;
+ lossD.smoothed.push(a*prev+(1-a)*loss);
+ if(lossD.labels.length>MAX_PTS){lossD.labels.shift();lossD.values.shift();lossD.smoothed.shift()}
+ chart.update('none');
+}
 
-            if (peerList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="icon">📡</div>Waiting for peers…</td></tr>';
-                updatePeerCount(0);
-                return;
-            }
-            updatePeerCount(peerList.length);
-            tbody.innerHTML = peerList.map(p => `
-                <tr class="fade-in">
-                    <td><span class="dot dot-active"></span>${p.status || 'active'}</td>
-                    <td>${p.device_name || p.address || 'unknown'}</td>
-                    <td>${p.memory_gb ? p.memory_gb.toFixed(1) + ' GB' : (p.rtt_ms ? p.rtt_ms + ' ms' : 'N/A')}</td>
-                    <td>${p.compute_tflops ? p.compute_tflops.toFixed(1) : (p.address || 'N/A')}</td>
-                </tr>
-            `).join('');
-        }
+function updateStats(d){
+ if(d.step!==undefined){document.getElementById('sStep').textContent=d.step.toLocaleString();
+  const p=Math.min(100,(d.step/5000)*100);document.getElementById('stepProgress').style.width=p+'%'}
+ if(d.loss!==undefined){const l=d.loss;document.getElementById('sLoss').textContent=l.toFixed(4);
+  if(prevLoss!==null){const delta=l-prevLoss;const el=document.getElementById('sLossDelta');
+   el.textContent=(delta<0?'▼ ':'▲ ')+Math.abs(delta).toFixed(4);el.style.color=delta<0?'var(--emerald)':'var(--rose)'}
+  prevLoss=l}
+ if(d.tokens_per_sec!==undefined)document.getElementById('sTps').textContent=Math.round(d.tokens_per_sec).toLocaleString();
+ if(d.lr!==undefined)document.getElementById('sLR').textContent=d.lr.toExponential(2);
+}
 
-        // --- Checkpoints ---
-        function addCheckpoint(ckpt) {
-            const list = document.getElementById('checkpointList');
-            if (list.querySelector('.empty-state')) list.innerHTML = '';
-            const time = new Date(ckpt.timestamp * 1000).toLocaleTimeString();
-            const li = document.createElement('li');
-            li.className = 'checkpoint-item fade-in';
-            li.innerHTML = `
-                <span class="checkpoint-step">step ${ckpt.step.toLocaleString()}</span>
-                <span class="checkpoint-loss">loss ${ckpt.loss.toFixed(4)}</span>
-                <span class="checkpoint-time">${time}</span>
-            `;
-            list.prepend(li);
-        }
+function addLog(type,msg){
+ const log=document.getElementById('transferLog');
+ if(log.querySelector('.empty'))log.innerHTML='';
+ const t=new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+ const cls={weights:'t-weights',gradient:'t-gradient',sync:'t-sync',heartbeat:'t-heartbeat',peer:'t-peer'}[type]||'t-sync';
+ const div=document.createElement('div');div.className='log-entry fade-up';
+ div.innerHTML=`<span class="log-time">${t}</span><span class="log-type ${cls}">${type}</span><span class="log-msg">${msg}</span>`;
+ log.prepend(div);logEntries++;
+ if(log.children.length>MAX_LOG)log.removeChild(log.lastChild);
+ document.getElementById('logCount').textContent=logEntries+' events';
+}
 
-        // --- WebSocket ---
-        function connect() {
-            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${proto}//${location.host}/ws`);
+function updatePeers(peers){
+ const grid=document.getElementById('peersGrid');
+ const coordCard=document.getElementById('coordCard');
+ // Remove old worker cards
+ grid.querySelectorAll('.worker-card').forEach(c=>c.remove());
 
-            ws.onopen = () => {
-                const badge = document.getElementById('statusBadge');
-                badge.textContent = 'Connected';
-                badge.className = 'status-badge status-connected';
-            };
+ let peerList=[];
+ if(Array.isArray(peers))peerList=peers;
+ else if(peers&&typeof peers==='object')peerList=Object.entries(peers).map(([id,info])=>({id,...info}));
 
-            ws.onclose = () => {
-                const badge = document.getElementById('statusBadge');
-                badge.textContent = 'Disconnected';
-                badge.className = 'status-badge status-disconnected';
-                // Reconnect after 3 seconds
-                setTimeout(connect, 3000);
-            };
+ const total=1+peerList.length;
+ document.getElementById('sPeers').textContent=total;
+ document.getElementById('peerCount').textContent=total+' device'+(total>1?'s':'');
 
-            ws.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
+ peerList.forEach(p=>{
+  const card=document.createElement('div');
+  card.className='peer-card worker-card fade-up';
+  const name=p.device_name||p.address||p.id?.slice(0,8)||'Worker';
+  const mem=p.memory_gb?p.memory_gb.toFixed(1)+' GB':'—';
+  const tflops=p.compute_tflops?p.compute_tflops.toFixed(1):'—';
+  const rtt=p.rtt_ms?p.rtt_ms+' ms':'—';
+  const status=p.status||'active';
+  card.innerHTML=`
+   <div class="peer-avatar" style="background:var(--blue-bg);color:var(--blue)">💻</div>
+   <div class="peer-info">
+    <div class="peer-name">${name}</div>
+    <div class="peer-detail">${p.address||'LAN'}</div>
+    <div class="peer-status"><div class="dot dot-on"></div><span style="color:var(--emerald)">${status}</span></div>
+    <div class="peer-metrics">
+     <div class="peer-metric">Memory<span>${mem}</span></div>
+     <div class="peer-metric">TFLOPS<span>${tflops}</span></div>
+     <div class="peer-metric">RTT<span>${rtt}</span></div>
+    </div>
+   </div>`;
+  grid.appendChild(card);
+  addLog('peer',`${name} connected (${p.address||'LAN'})`);
+ });
+}
 
-                switch (msg.type) {
-                    case 'init':
-                        // Load historical data
-                        (msg.metrics || []).forEach(m => {
-                            addLossPoint(m.step, m.loss);
-                            updateStats(m);
-                        });
-                        if (msg.cluster && msg.cluster.peers) updatePeers(msg.cluster.peers);
-                        (msg.checkpoints || []).forEach(addCheckpoint);
-                        break;
+function addCheckpoint(c){
+ const list=document.getElementById('ckptList');
+ if(list.querySelector('.empty'))list.innerHTML='';
+ const t=new Date(c.timestamp*1000).toLocaleTimeString();
+ const li=document.createElement('li');li.className='ckpt-item fade-up';
+ li.innerHTML=`<span class="ckpt-step">step ${c.step.toLocaleString()}</span><span class="ckpt-loss">loss ${c.loss.toFixed(4)}</span><span class="ckpt-time">${t}</span>`;
+ list.prepend(li);
+}
 
-                    case 'metric':
-                        addLossPoint(msg.step, msg.loss);
-                        updateStats(msg);
-                        if (msg.peer_count !== undefined) updatePeerCount(msg.peer_count);
-                        if (msg.peers) updatePeers(msg.peers);
-                        break;
+function connect(){
+ const proto=location.protocol==='https:'?'wss:':'ws:';
+ ws=new WebSocket(`${proto}//${location.host}/ws`);
+ ws.onopen=()=>{const b=document.getElementById('statusBadge');b.textContent='Live';b.className='badge badge-live';addLog('sync','Dashboard connected to coordinator')};
+ ws.onclose=()=>{const b=document.getElementById('statusBadge');b.textContent='Disconnected';b.className='badge badge-off';setTimeout(connect,3000)};
+ ws.onmessage=(e)=>{
+  const m=JSON.parse(e.data);
+  switch(m.type){
+   case 'init':
+    (m.metrics||[]).forEach(d=>{addLoss(d.step,d.loss);updateStats(d)});
+    if(m.cluster&&m.cluster.peers)updatePeers(m.cluster.peers);
+    (m.checkpoints||[]).forEach(addCheckpoint);break;
+   case 'metric':
+    addLoss(m.step,m.loss);updateStats(m);
+    if(m.peers)updatePeers(m.peers);
+    else if(m.peer_count!==undefined){document.getElementById('sPeers').textContent=1+m.peer_count;
+     document.getElementById('peerCount').textContent=(1+m.peer_count)+' devices'}
+    break;
+   case 'cluster':if(m.peers)updatePeers(m.peers);break;
+   case 'checkpoint':addCheckpoint(m);addLog('sync',`Checkpoint saved at step ${m.step}`);break;
+  }
+ };
+}
 
-                    case 'cluster':
-                        if (msg.peers) updatePeers(msg.peers);
-                        break;
-
-                    case 'checkpoint':
-                        addCheckpoint(msg);
-                        break;
-                }
-            };
-        }
-
-        // --- Init ---
-        initChart();
-        connect();
-    </script>
+initChart();connect();
+</script>
 </body>
 </html>
