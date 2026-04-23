@@ -58,9 +58,11 @@ class PeerConnection:
         return sum(self._rtt_samples) / len(self._rtt_samples)
 
     async def send(self, data: bytes) -> None:
-        """Write raw bytes and drain."""
-        self.writer.write(data)
-        await self.writer.drain()
+        """Write raw bytes and drain, chunking large payloads."""
+        CHUNK = 1024 * 1024  # 1 MB chunks
+        for i in range(0, len(data), CHUNK):
+            self.writer.write(data[i : i + CHUNK])
+            await self.writer.drain()
 
     async def send_frame(
         self,

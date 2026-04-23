@@ -41,6 +41,7 @@ class GPT2Config:
 
 # Pre-defined configurations
 GPT2_CONFIGS = {
+    "gpt2-tiny": GPT2Config(n_layers=4, n_heads=4, d_model=256, d_ff=1024),
     "gpt2-small": GPT2Config(n_layers=12, n_heads=12, d_model=768, d_ff=3072),
     "gpt2-medium": GPT2Config(n_layers=24, n_heads=16, d_model=1024, d_ff=4096),
     "gpt2-large": GPT2Config(n_layers=36, n_heads=20, d_model=1280, d_ff=5120),

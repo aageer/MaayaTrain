@@ -362,7 +362,7 @@ def quickstart(
         "join",
         help="'join' to connect to coordinator, 'start' to be coordinator",
     ),
-    model: str = typer.Option("gpt2-small", "--model", "-m", help="Model name"),
+    model: str = typer.Option("gpt2-tiny", "--model", "-m", help="Model name (gpt2-tiny for Wi-Fi, gpt2-small for LAN)"),
     max_steps: int = typer.Option(5000, "--max-steps", help="Max training steps"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Debug logging"),
 ) -> None:
