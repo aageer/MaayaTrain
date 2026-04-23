@@ -115,6 +115,11 @@ class Orchestrator:
                 pass  # Windows doesn't support add_signal_handler in asyncio
 
         try:
+            # Brief window to accept initial peer connections before
+            # the synchronous inner loop blocks the event loop
+            logger.info("Accepting connections for 2s before training starts…")
+            await asyncio.sleep(2.0)
+
             while self.global_step < self.settings.training.max_steps:
                 if self._stop_event.is_set():
                     break
@@ -136,11 +141,18 @@ class Orchestrator:
         # 0. Dynamic re-sharding based on cluster RTT
         self._adapt_streaming_shards()
 
+        # 0b. Flush the event loop to process any pending peer connections
+        #     (train_steps is synchronous, so new connections queue up)
+        await asyncio.sleep(0.1)
+
         # 1. Snapshot global params
         self.diloco.snapshot_global()
 
         # 2. Broadcast current weights to all workers
         await self._broadcast_weights()
+
+        # 2b. Another flush — give workers time to receive weights
+        await asyncio.sleep(0.1)
 
         # 3. Run local inner loop (coordinator also trains)
         self.diloco.reset_inner_optimizer()
