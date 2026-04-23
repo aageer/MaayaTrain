@@ -104,7 +104,7 @@ class NetworkConfig(BaseModel):
     """TCP transport settings."""
 
     port: int = Field(default=7471, ge=1024, le=65535, description="TCP port for peer comms")
-    heartbeat_interval: int = Field(default=5, ge=1, description="Heartbeat period in seconds")
+    heartbeat_interval: int = Field(default=15, ge=1, description="Heartbeat period in seconds")
     bind_address: str = Field(default="0.0.0.0", description="Address to bind the TCP server")
 
 

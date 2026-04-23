@@ -361,7 +361,13 @@ class Orchestrator:
         use_fp16 = self.settings.diloco.compress_fp16
         payload = compress(state, use_fp16=use_fp16)
         tag = compression_tag(use_fp16)
+        # Refresh heartbeat before sending large payload — the worker
+        # can't respond to heartbeats while reading 150+ MB of weights
+        conn.last_heartbeat = time.time()
+        logger.info("Sending weights to %s (%d MB)…", conn.peer_id, len(payload) // (1024*1024))
         await conn.send_frame(MsgKind.MODEL_WEIGHTS, self.peer_id, payload, compression=tag)
+        conn.last_heartbeat = time.time()  # refresh again after send completes
+        logger.info("Weights sent successfully to %s", conn.peer_id)
 
     def _save_checkpoint(self) -> None:
         """Save a training checkpoint."""
