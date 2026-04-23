@@ -8,11 +8,9 @@ from datasets import load_dataset
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
-    TrainingArguments,
-    DataCollatorForLanguageModeling,
 )
-from peft import LoraConfig, get_peft_model, TaskType
-from trl import SFTTrainer
+from peft import LoraConfig, TaskType
+from trl import SFTTrainer, SFTConfig
 
 # ─── Configuration ───────────────────────────────────────────
 MODEL_ID = "google/gemma-3-1b-pt"
@@ -20,8 +18,8 @@ DATASET_ID = "databricks/databricks-dolly-15k"
 OUTPUT_DIR = "./gemma-finetuned"
 MAX_SEQ_LENGTH = 512
 NUM_EPOCHS = 3
-BATCH_SIZE = 2
-GRAD_ACCUM = 4        # effective batch = 2 * 4 = 8
+BATCH_SIZE = 1
+GRAD_ACCUM = 8        # effective batch = 1 * 8 = 8
 LEARNING_RATE = 2e-4
 LORA_R = 16
 LORA_ALPHA = 32
@@ -45,12 +43,12 @@ if tokenizer.pad_token is None:
 print("Loading model...")
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID,
-    torch_dtype=torch.float16,
+    dtype=torch.float32,  # MPS requires float32 for stable training
     device_map=None,  # we handle placement manually for MPS
 )
 
-# ─── Apply LoRA ──────────────────────────────────────────────
-print("Applying LoRA adapters...")
+# ─── LoRA Config ─────────────────────────────────────────────
+print("Configuring LoRA adapters...")
 lora_config = LoraConfig(
     r=LORA_R,
     lora_alpha=LORA_ALPHA,
@@ -59,8 +57,6 @@ lora_config = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
     bias="none",
 )
-model = get_peft_model(model, lora_config)
-model.print_trainable_parameters()
 
 # ─── Load & Format Dataset ───────────────────────────────────
 print("Loading dataset...")
@@ -85,8 +81,8 @@ train_dataset = split["train"]
 eval_dataset = split["test"]
 print(f"Train: {len(train_dataset)} | Eval: {len(eval_dataset)}")
 
-# ─── Training Arguments ─────────────────────────────────────
-training_args = TrainingArguments(
+# ─── SFT Training Config ────────────────────────────────────
+sft_config = SFTConfig(
     output_dir=OUTPUT_DIR,
     num_train_epochs=NUM_EPOCHS,
     per_device_train_batch_size=BATCH_SIZE,
@@ -94,7 +90,7 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=GRAD_ACCUM,
     learning_rate=LEARNING_RATE,
     lr_scheduler_type="cosine",
-    warmup_ratio=0.1,
+    warmup_steps=50,
     weight_decay=0.01,
     fp16=False,  # MPS doesn't support fp16 training well
     bf16=False,
@@ -109,20 +105,20 @@ training_args = TrainingArguments(
     report_to="none",
     seed=42,
     dataloader_pin_memory=False,  # Required for MPS
-    use_mps_device=(device == "mps"),
+    max_length=MAX_SEQ_LENGTH,
+    dataset_text_field="text",
+    packing=False,
 )
 
 # ─── Train ───────────────────────────────────────────────────
 print("Starting training...")
 trainer = SFTTrainer(
     model=model,
-    args=training_args,
+    args=sft_config,
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,
-    tokenizer=tokenizer,
-    max_seq_length=MAX_SEQ_LENGTH,
-    dataset_text_field="text",
-    packing=False,
+    processing_class=tokenizer,
+    peft_config=lora_config,
 )
 
 trainer.train()
