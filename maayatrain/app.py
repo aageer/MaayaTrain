@@ -356,6 +356,160 @@ def relay_import(
     console.print(f"[green]✓ Relay checkpoint ready at: {path}[/green]")
     console.print("[dim]Use 'maayatrain start --resume {path}' to continue training.[/dim]")
 
+@app.command()
+def quickstart(
+    mode: str = typer.Argument(
+        "join",
+        help="'join' to connect to coordinator, 'start' to be coordinator",
+    ),
+    model: str = typer.Option("gpt2-small", "--model", "-m", help="Model name"),
+    max_steps: int = typer.Option(5000, "--max-steps", help="Max training steps"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Debug logging"),
+) -> None:
+    """One-command setup — copies sample data and starts training immediately.
+
+    On the SECOND MacBook (worker)::
+
+        pip install git+https://github.com/aageer/MaayaTrain.git
+        maayatrain quickstart join
+
+    On the PRIMARY MacBook (coordinator)::
+
+        maayatrain quickstart start
+    """
+    _setup_logging(verbose)
+    _banner()
+
+    # Copy bundled sample data to local ./data/
+    sample_src = Path(__file__).parent / "sample_data" / "sample.txt"
+    data_dir = Path("./data")
+    data_file = data_dir / "training_text.txt"
+
+    if not data_file.exists():
+        data_dir.mkdir(parents=True, exist_ok=True)
+        if sample_src.exists():
+            shutil.copy(sample_src, data_file)
+            console.print(f"[green]✓ Sample training data copied to {data_file}[/green]")
+        else:
+            console.print("[red]No sample data found in package. Create ./data/training_text.txt manually.[/red]")
+            raise typer.Exit(1)
+    else:
+        console.print(f"[dim]Using existing {data_file}[/dim]")
+
+    dataset = str(data_file)
+
+    if mode == "start":
+        console.print("\n[bold cyan]Starting as COORDINATOR with dashboard…[/bold cyan]\n")
+        # Invoke the start command
+        from .settings import load_settings
+        settings = load_settings()
+        settings.model.name = model
+        settings.dataset.path = dataset
+        settings.training.max_steps = max_steps
+        settings.dashboard.enabled = True
+
+        hw = detect_device()
+        console.print(f"[cyan]Device:[/cyan] {hw.summary()}")
+
+        from .training.loop import SimpleTextDataset
+        ds = SimpleTextDataset(dataset, seq_length=settings.dataset.seq_length, device=str(hw.device))
+
+        from .architectures.catalog import create_model
+        mdl = create_model(model, vocab_size=ds.vocab_size, seq_length=settings.dataset.seq_length)
+        mdl.to(hw.device)
+        param_m = sum(p.numel() for p in mdl.parameters()) / 1e6
+        console.print(f"[cyan]Model:[/cyan] {model} ({param_m:.1f}M parameters)")
+
+        from .architectures.gpt2 import try_compile
+        mdl = try_compile(mdl)
+
+        from .training.orchestrator import Orchestrator
+        orch = Orchestrator(mdl, settings, hw, ds)
+
+        from .monitor.server import create_dashboard_app, push_metrics
+        import uvicorn
+        import threading
+
+        dash_app = create_dashboard_app()
+        def _on_metrics(m):
+            push_metrics(dash_app, m.step, m.loss, m.tokens_per_sec, m.lr)
+        orch.on_metrics = _on_metrics
+
+        def _run_dash():
+            uvicorn.run(dash_app, host="0.0.0.0", port=settings.dashboard.port, log_level="warning")
+        dash_thread = threading.Thread(target=_run_dash, daemon=True)
+        dash_thread.start()
+        console.print(f"[green]Dashboard:[/green] http://localhost:{settings.dashboard.port}")
+
+        from .discovery.zeroconf_service import ZeroconfAdvertiser
+        advertiser = ZeroconfAdvertiser(
+            port=settings.network.port, model=model,
+            device=hw.device_name, memory_gb=hw.memory_gb, hostname=hw.hostname,
+        )
+        try:
+            advertiser.start()
+        except Exception as e:
+            console.print(f"[yellow]mDNS: {e}[/yellow]")
+
+        console.print(f"[green]Listening on port {settings.network.port} — waiting for workers…[/green]")
+        console.print("[dim]Press Ctrl+C to stop.[/dim]\n")
+
+        try:
+            asyncio.run(orch.run())
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Stopping…[/yellow]")
+        finally:
+            try: advertiser.stop()
+            except Exception: pass
+        console.print("[green]✓ Done.[/green]")
+
+    elif mode == "join":
+        console.print("\n[bold cyan]Joining coordinator automatically…[/bold cyan]\n")
+
+        hw = detect_device()
+        console.print(f"[cyan]Device:[/cyan] {hw.summary()}")
+        console.print("[dim]Searching for coordinator on your Wi-Fi…[/dim]")
+
+        from .settings import load_settings
+        settings = load_settings()
+        settings.dataset.path = dataset
+
+        from .discovery.zeroconf_service import ZeroconfBrowser
+        browser = ZeroconfBrowser()
+        browser.start()
+        peer = browser.wait_for_coordinator(timeout=30)
+        browser.stop()
+
+        if not peer:
+            console.print("[red]No coordinator found on this network.[/red]")
+            console.print("[dim]Make sure the primary MacBook is running: maayatrain quickstart start[/dim]")
+            raise typer.Exit(1)
+
+        host, port = peer.host, peer.port
+        console.print(f"[green]Found coordinator: {peer.model} at {host}:{port}[/green]")
+
+        from .training.loop import SimpleTextDataset
+        ds = SimpleTextDataset(dataset, seq_length=settings.dataset.seq_length, device=str(hw.device))
+
+        from .architectures.catalog import create_model
+        mdl = create_model(settings.model.name, vocab_size=ds.vocab_size, seq_length=settings.dataset.seq_length)
+        mdl.to(hw.device)
+
+        from .training.participant import Participant
+        worker = Participant(mdl, settings, hw, ds)
+
+        console.print(f"[green]Connecting to {host}:{port}…[/green]\n")
+
+        try:
+            asyncio.run(worker.connect_and_train(host, port))
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Stopping…[/yellow]")
+        console.print("[green]✓ Done.[/green]")
+
+    else:
+        console.print(f"[red]Unknown mode '{mode}'. Use 'start' or 'join'.[/red]")
+        raise typer.Exit(1)
+
 
 @app.command()
 def version() -> None:

@@ -1,0 +1,41 @@
+Machine learning is a branch of artificial intelligence that focuses on building systems capable of learning from data. These systems improve their performance on specific tasks over time without being explicitly programmed. The field has seen tremendous growth in recent years, driven by advances in computing power, the availability of large datasets, and improvements in algorithms.
+
+Deep learning is a subset of machine learning that uses artificial neural networks with many layers. These networks can automatically learn hierarchical representations of data, making them particularly effective for tasks such as image recognition, natural language processing, and speech recognition. Convolutional neural networks are commonly used for image tasks, while recurrent neural networks and transformers handle sequential data.
+
+Distributed computing refers to a system where components located on networked computers communicate and coordinate their actions by passing messages. The components interact with each other in order to achieve a common goal. Distributed training of machine learning models involves splitting the computational workload across multiple machines to reduce training time and handle larger models.
+
+The DiLoCo algorithm, or Distributed Low-Communication Learning, is a method for training neural networks across multiple devices with minimal communication overhead. Instead of synchronizing gradients after every step, each device trains independently for several steps before sharing updates. This dramatically reduces the network bandwidth required and makes it practical to train models across regular consumer hardware connected over standard Wi-Fi networks.
+
+Natural language processing is a field of artificial intelligence that gives computers the ability to understand, interpret, and generate human language. Modern NLP systems rely heavily on transformer architectures, which use self-attention mechanisms to process input sequences in parallel rather than sequentially. This parallel processing capability has led to significant improvements in translation, summarization, and question-answering tasks.
+
+Transfer learning is a technique where a model trained on one task is repurposed for a related task. Rather than training a model from scratch, transfer learning leverages the knowledge gained from solving one problem and applies it to a different but related problem. This approach is particularly valuable when labeled data is scarce for the target task but abundant for a related source task.
+
+Gradient descent is the fundamental optimization algorithm used in training neural networks. It works by computing the gradient of the loss function with respect to the model parameters and then updating those parameters in the direction that reduces the loss. Variants such as stochastic gradient descent, Adam, and AdaGrad offer different trade-offs between convergence speed and computational efficiency.
+
+Attention mechanisms allow neural networks to focus on specific parts of the input when producing output. The transformer architecture, introduced in the seminal paper Attention Is All You Need, relies entirely on attention mechanisms without using recurrence or convolution. Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions.
+
+Federated learning is a machine learning approach where the model is trained across multiple decentralized devices holding local data samples, without exchanging the raw data. This method addresses privacy concerns and data governance issues by keeping the training data on the local device and only sharing model updates. Federated averaging is the most common algorithm used in federated learning systems.
+
+Reinforcement learning is an area of machine learning concerned with how agents should take actions in an environment to maximize cumulative reward. Unlike supervised learning, the agent must discover which actions yield the most reward through trial and error. Deep reinforcement learning combines deep neural networks with reinforcement learning principles, enabling agents to learn directly from high-dimensional sensory inputs.
+
+Model parallelism is a distributed training strategy where different parts of the model are placed on different devices. This is particularly useful for very large models that cannot fit in the memory of a single device. Pipeline parallelism is a variant where the model is split into stages, and different micro-batches are processed by different stages simultaneously.
+
+Data parallelism is another distributed training strategy where each device holds a complete copy of the model but processes different subsets of the training data. After each training step, the devices synchronize their gradients to ensure the model copies remain consistent. This approach scales well with the number of devices and is the most commonly used form of distributed training.
+
+Quantization is a technique for reducing the precision of neural network weights and activations from floating-point to lower-bit representations. This reduces memory usage and computational requirements, making it possible to deploy large models on resource-constrained devices. Common approaches include post-training quantization and quantization-aware training.
+
+The backpropagation algorithm is the cornerstone of neural network training. It efficiently computes gradients of the loss function with respect to each parameter by applying the chain rule of calculus, propagating error signals backward through the network layers. Combined with gradient descent optimization, backpropagation enables neural networks to learn complex mappings from inputs to outputs.
+
+Batch normalization is a technique that normalizes the inputs to each layer of a neural network, reducing internal covariate shift. This allows higher learning rates and reduces the dependence on careful initialization. Layer normalization is an alternative that normalizes across features rather than across the batch dimension, making it more suitable for recurrent networks and transformers.
+
+Regularization techniques prevent overfitting by adding constraints to the learning process. Dropout randomly sets a fraction of input units to zero during training, forcing the network to learn redundant representations. Weight decay adds a penalty proportional to the magnitude of the weights, encouraging the model to learn simpler patterns that generalize better.
+
+Learning rate scheduling adjusts the learning rate during training to improve convergence. Common strategies include step decay, cosine annealing, and warmup followed by decay. The choice of learning rate schedule can significantly impact both the speed of convergence and the final model quality.
+
+Tokenization is the process of converting raw text into a sequence of tokens that can be processed by a language model. Subword tokenization methods such as Byte Pair Encoding and SentencePiece break words into smaller units, allowing the model to handle rare and out-of-vocabulary words while maintaining a manageable vocabulary size.
+
+Embedding layers map discrete tokens to continuous vector representations that capture semantic relationships. Word embeddings like Word2Vec and GloVe showed that arithmetic operations on these vectors can capture analogies and semantic similarity. Modern contextual embeddings from transformers provide different representations for the same word depending on its surrounding context.
+
+The softmax function converts a vector of real numbers into a probability distribution. In neural networks, it is commonly used as the final activation function for classification tasks. The temperature parameter controls the entropy of the output distribution, with lower temperatures producing sharper distributions and higher temperatures producing more uniform ones.
+
+Cross-entropy loss measures the difference between two probability distributions and is widely used as a training objective for classification and language modeling tasks. For language models, the cross-entropy loss is equivalent to the negative log-likelihood of the correct token at each position, and minimizing it encourages the model to assign higher probability to the correct next token.
