@@ -44,3 +44,5 @@ htmlcov/
 # Misc
 *.log
 .gemini/
+# Research paper (private)
+paper/
