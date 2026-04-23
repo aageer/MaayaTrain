@@ -361,16 +361,17 @@ class Orchestrator:
         use_fp16 = self.settings.diloco.compress_fp16
         payload = compress(state, use_fp16=use_fp16)
         tag = compression_tag(use_fp16)
-        # Refresh heartbeat before sending large payload — the worker
-        # can't respond to heartbeats while reading 150+ MB of weights
+        payload_mb = len(payload) / (1024 * 1024)
+        # Mark connection as transferring — heartbeat loop will back off
+        conn._transferring = True
         conn.last_heartbeat = time.time()
-        logger.info("Sending weights to %s (%d MB)…", conn.peer_id, len(payload) // (1024*1024))
-        await conn.send_frame(MsgKind.MODEL_WEIGHTS, self.peer_id, payload, compression=tag)
-        conn.last_heartbeat = time.time()  # refresh again after send completes
+        logger.info("Sending weights to %s (%.1f MB compressed)…", conn.peer_id, payload_mb)
+        try:
+            await conn.send_frame(MsgKind.MODEL_WEIGHTS, self.peer_id, payload, compression=tag)
+        finally:
+            conn._transferring = False
+            conn.last_heartbeat = time.time()
         # Send SYNC_REQUEST so the worker starts training immediately
-        # (without this, mid-round joiners receive weights but never
-        #  start because _awaiting_sync only triggers on SYNC_REQUEST
-        #  in the main training loop)
         await conn.send_frame(
             MsgKind.SYNC_REQUEST, self.peer_id,
             extra={"step": self.global_step},

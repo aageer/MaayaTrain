@@ -46,6 +46,7 @@ class PeerConnection:
     _rtt_samples: Deque[float] = field(default_factory=lambda: deque(maxlen=_RTT_WINDOW))
     _pending_heartbeat_ts: Optional[float] = field(default=None)
     _write_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    _transferring: bool = field(default=False)  # True while sending/receiving large payload
 
     def record_rtt(self, rtt_ms: float) -> None:
         """Record a single RTT measurement in milliseconds."""
@@ -255,10 +256,10 @@ class TcpServer:
             while True:
                 await asyncio.sleep(self.heartbeat_interval)
                 now = time.time()
-                stale_threshold = self.heartbeat_interval * 3
+                stale_threshold = self.heartbeat_interval * 6  # 30s — generous for Wi-Fi weight transfers
                 dead: list[str] = []
                 for pid, conn in self.peers.items():
-                    if now - conn.last_heartbeat > stale_threshold:
+                    if now - conn.last_heartbeat > stale_threshold and not conn._transferring:
                         dead.append(pid)
                     else:
                         # Send heartbeat probe with timestamp for RTT measurement
@@ -347,6 +348,7 @@ class TcpClient:
         try:
             while conn.is_alive:
                 await asyncio.sleep(self.heartbeat_interval)
-                await conn.send_frame(MsgKind.HEARTBEAT, self.peer_id)
+                if not conn._transferring:  # Skip heartbeat during large transfers
+                    await conn.send_frame(MsgKind.HEARTBEAT, self.peer_id)
         except (asyncio.CancelledError, ConnectionError):
             pass

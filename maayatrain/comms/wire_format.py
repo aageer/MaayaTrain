@@ -30,6 +30,13 @@ _HEADER_LEN_SIZE = struct.calcsize(_HEADER_LEN_FMT)
 # Maximum header size: 64 KiB (sanity guard against corrupt streams)
 _MAX_HEADER_BYTES = 65_536
 
+# Payloads larger than this threshold are read in chunks to prevent
+# TCP stalls on high-latency networks (Wi-Fi).  A single
+# readexactly(6_000_000) can block for seconds while the kernel
+# buffer fills, stalling heartbeats on the sender side.
+_CHUNKED_READ_THRESHOLD = 256 * 1024   # 256 KB
+_READ_CHUNK_SIZE = 512 * 1024          # 512 KB per read
+
 
 class MsgKind(str, Enum):
     """All message types exchanged between MaayaTrain peers."""
@@ -143,6 +150,11 @@ class Frame:
 async def read_frame(reader: "asyncio.StreamReader") -> Frame:  # noqa: F821
     """Read exactly one frame from an asyncio StreamReader.
 
+    Large payloads (>256KB) are read in chunks to avoid TCP stalls
+    on high-latency networks like Wi-Fi.  This keeps the kernel
+    receive buffer from filling up, which would cause the sender
+    to stall on drain().
+
     Raises
     ------
     ConnectionError
@@ -162,9 +174,23 @@ async def read_frame(reader: "asyncio.StreamReader") -> Frame:  # noqa: F821
     header_bytes = await reader.readexactly(header_len)
     header: dict[str, Any] = json.loads(header_bytes)
 
-    # 3. Read binary payload (if any)
+    # 3. Read binary payload in chunks to avoid Wi-Fi TCP stalls
     payload_size = header.get("payload_size", 0)
-    payload = await reader.readexactly(payload_size) if payload_size > 0 else b""
+    if payload_size == 0:
+        payload = b""
+    elif payload_size <= _CHUNKED_READ_THRESHOLD:
+        # Small payloads: single read
+        payload = await reader.readexactly(payload_size)
+    else:
+        # Large payloads: read in chunks to keep TCP flowing
+        chunks = []
+        remaining = payload_size
+        while remaining > 0:
+            chunk_size = min(remaining, _READ_CHUNK_SIZE)
+            chunk = await reader.readexactly(chunk_size)
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        payload = b"".join(chunks)
 
     return Frame(header, payload)
 
