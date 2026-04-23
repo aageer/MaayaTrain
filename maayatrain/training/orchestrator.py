@@ -360,6 +360,29 @@ class Orchestrator:
             momentum_buffer=self.diloco._momentum_buffer,
         )
 
+        # --- SOTA TELEMETRY EXPORT ---
+        # Auto-log cluster metrics for paper benchmarks and debugging.
+        # Produces a CSV that generate_benchmarks.py can ingest directly.
+        import csv
+
+        telemetry_file = Path(self.settings.training.checkpoint_dir) / "telemetry.csv"
+        file_exists = telemetry_file.exists()
+        with open(telemetry_file, "a", newline="") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow([
+                    "global_step", "loss", "compute_hours",
+                    "cluster_rtt_ms", "active_peers", "streaming_shards",
+                ])
+            writer.writerow([
+                self.global_step,
+                self._latest_loss(),
+                self._compute_hours(),
+                self.server.cluster_avg_rtt_ms,
+                len(self.server.peers),
+                self._current_streaming_shards,
+            ])
+
     def _latest_loss(self) -> float:
         return self._metrics_history[-1].loss if self._metrics_history else float("inf")
 

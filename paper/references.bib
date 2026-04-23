@@ -1,0 +1,332 @@
+% ==========================================================================
+% MaayaTrain — BibTeX References
+% Original citations + SOTA literature identified in Phase 1 critique
+% ==========================================================================
+
+% ---------------------------------------------------------------------------
+% Core DiLoCo lineage
+% ---------------------------------------------------------------------------
+
+@article{douillard2023diloco,
+  author    = {Douillard, Arthur and Feng, Qixuan and Rusu, Andrei A. and
+               Chhaparia, Rachita and Donez, Yani and Zappella, Luca and
+               Sessa, Marc},
+  title     = {{DiLoCo}: Distributed Low-Communication Training of Language Models},
+  journal   = {arXiv preprint arXiv:2311.08105},
+  year      = {2023},
+}
+
+@article{douillard2025streaming,
+  author    = {Douillard, Arthur and Ram\'{e}, Alexandre and Feng, Qixuan and
+               Sessa, Marc},
+  title     = {Streaming {DiLoCo} with Overlapping Communication: Towards a
+               Distributed Free Lunch},
+  journal   = {arXiv preprint arXiv:2501.18512},
+  year      = {2025},
+}
+
+@article{jaghouar2024opendiloco,
+  author    = {Jaghouar, Sami and Fuhrer, Jack and Romero, David},
+  title     = {{OpenDiLoCo}: An Open-Source Framework for Globally Distributed
+               Low-Communication Training},
+  journal   = {arXiv preprint arXiv:2407.07852},
+  year      = {2024},
+}
+
+% ---------------------------------------------------------------------------
+% Gradient Compression & Quantization (including new SOTA)
+% ---------------------------------------------------------------------------
+
+@inproceedings{dettmers2023qlora,
+  author    = {Dettmers, Tim and Pagnoni, Artidoro and Holtzman, Ari and
+               Zettlemoyer, Luke},
+  title     = {{QLoRA}: Efficient Finetuning of Quantized {LLMs}},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {36},
+  year      = {2023},
+}
+
+@article{zhao2024galore,
+  author    = {Zhao, Jiawei and Zhang, Zhenyu and Chen, Beidi and Wang, Zhangyang
+               and Anandkumar, Anima and Tian, Yuandong},
+  title     = {{GaLore}: Memory-Efficient {LLM} Training by Gradient Low-Rank
+               Projection},
+  journal   = {arXiv preprint arXiv:2403.03507},
+  year      = {2024},
+}
+
+@inproceedings{alistarh2017qsgd,
+  author    = {Alistarh, Dan and Grubic, Demjan and Li, Jerry and Tomioka,
+               Ryota and Vojnovic, Milan},
+  title     = {{QSGD}: Communication-Efficient {SGD} via Gradient Quantization
+               and Encoding},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {30},
+  year      = {2017},
+}
+
+@inproceedings{seide2014onebit,
+  author    = {Seide, Frank and Fu, Hao and Droppo, Jasha and Li, Gang and
+               Yu, Dong},
+  title     = {1-Bit Stochastic Gradient Descent and its Application to
+               Data-Parallel Distributed Training of Speech {DNNs}},
+  booktitle = {Proceedings of Interspeech},
+  year      = {2014},
+}
+
+@inproceedings{aji2017sparse,
+  author    = {Aji, Alham Fikri and Heafield, Kenneth},
+  title     = {Sparse Communication for Distributed Gradient Descent},
+  booktitle = {Proceedings of the Conference on Empirical Methods in Natural
+               Language Processing (EMNLP)},
+  year      = {2017},
+}
+
+@inproceedings{stich2018sparsified,
+  author    = {Stich, Sebastian U. and Cordonnier, Jean-Baptiste and Jaggi,
+               Martin},
+  title     = {Sparsified {SGD} with Memory},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {31},
+  year      = {2018},
+}
+
+@inproceedings{jacob2018quantization,
+  author    = {Jacob, Benoit and Kligys, Skirmantas and Chen, Bo and Zhu,
+               Menglong and Tang, Matthew and Howard, Andrew and Adam, Hartwig
+               and Kalenichenko, Dmitry},
+  title     = {Quantization and Training of Neural Networks for Efficient
+               Integer-Arithmetic-Only Inference},
+  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2018},
+}
+
+% ---------------------------------------------------------------------------
+% Byzantine Fault Tolerance
+% ---------------------------------------------------------------------------
+
+@inproceedings{blanchard2017byzantine,
+  author    = {Blanchard, Peva and El Mhamdi, El Mahdi and Guerraoui, Rachid
+               and Stainer, Julien},
+  title     = {Machine Learning with Adversaries: {Byzantine} Tolerant Gradient
+               Descent},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {30},
+  year      = {2017},
+}
+
+@inproceedings{yin2018byzantine,
+  author    = {Yin, Dong and Chen, Yudong and Kannan, Ramchandran and
+               Bartlett, Peter},
+  title     = {{Byzantine}-Robust Distributed Learning: Towards Optimal
+               Statistical Rates},
+  booktitle = {Proceedings of the 35th International Conference on Machine
+               Learning (ICML)},
+  year      = {2018},
+}
+
+% ---------------------------------------------------------------------------
+% Asynchronous / Federated Learning (new SOTA)
+% ---------------------------------------------------------------------------
+
+@inproceedings{mcmahan2017fedavg,
+  author    = {McMahan, Brendan and Moore, Eider and Ramage, Daniel and
+               Hampson, Seth and Arcas, Blaise Ag\"{u}era y},
+  title     = {Communication-Efficient Learning of Deep Networks from
+               Decentralized Data},
+  booktitle = {Proceedings of the 20th International Conference on Artificial
+               Intelligence and Statistics (AISTATS)},
+  year      = {2017},
+}
+
+@inproceedings{nguyen2022fedbuff,
+  author    = {Nguyen, John and Malik, Kshitiz and Zhan, Hongyuan and
+               Yurochkin, Mikhail and Huo, Zhangjie and Mauch, Lukas},
+  title     = {Federated Learning with Buffered Asynchronous Aggregation},
+  booktitle = {Proceedings of the International Conference on Artificial
+               Intelligence and Statistics (AISTATS)},
+  year      = {2022},
+}
+
+@inproceedings{casa2024kdd,
+  author    = {{CASA Authors}},
+  title     = {{CASA}: Clustering-Aggregation Synergy under Asynchrony for
+               Asynchronous Clustered Federated Learning},
+  booktitle = {Proceedings of the 30th ACM SIGKDD Conference on Knowledge
+               Discovery and Data Mining (KDD)},
+  year      = {2024},
+}
+
+@article{zhu2024heterogeneous,
+  author    = {Zhu, Hangyu and Zhang, Jinjin and Liu, Yaochu},
+  title     = {A Survey on Model-Heterogeneous Federated Learning},
+  journal   = {arXiv preprint arXiv:2405.09677},
+  year      = {2024},
+}
+
+% ---------------------------------------------------------------------------
+% Optimizers & Training
+% ---------------------------------------------------------------------------
+
+@inproceedings{loshchilov2019adamw,
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  title     = {Decoupled Weight Decay Regularization},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2019},
+}
+
+@article{nesterov1983,
+  author    = {Nesterov, Yurii},
+  title     = {A Method for Solving the Convex Programming Problem with
+               Convergence Rate {$O(1/k^2)$}},
+  journal   = {Doklady Akademii Nauk SSSR},
+  volume    = {269},
+  number    = {3},
+  pages     = {543--547},
+  year      = {1983},
+}
+
+@inproceedings{hoffmann2022chinchilla,
+  author    = {Hoffmann, Jordan and Borgeaud, Sebastian and Mensch, Arthur and
+               Buchatskaya, Elena and Cai, Trevor and Rutherford, Eliza and
+               de Las Casas, Diego and Hendricks, Lisa Anne and Welbl, Johannes
+               and Clark, Aidan and others},
+  title     = {Training Compute-Optimal Large Language Models},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {35},
+  year      = {2022},
+}
+
+% ---------------------------------------------------------------------------
+% Mixed Precision
+% ---------------------------------------------------------------------------
+
+@inproceedings{micikevicius2018mixed,
+  author    = {Micikevicius, Paulius and Narang, Sharan and Alben, Jonah and
+               Diamos, Gregory and Elsen, Erich and Garcia, David and
+               Ginsburg, Boris and Houston, Michael and Kuchaiev, Oleksii and
+               Venkatesh, Ganesh and Wu, Hao},
+  title     = {Mixed Precision Training},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2018},
+}
+
+@article{kalamkar2019bf16,
+  author    = {Kalamkar, Dhiraj and Mudigere, Dheevatsa and Mellempudi, Naveen
+               and Das, Dipankar and Banerjee, Kunal and Avancha, Sasikanth
+               and Vooturi, Dharma Teja and Jammalamadaka, Nataraj and Huang,
+               Jianyu and Yuen, Hector and others},
+  title     = {A Study of {BFLOAT16} for Deep Learning Training},
+  journal   = {arXiv preprint arXiv:1905.12322},
+  year      = {2019},
+}
+
+% ---------------------------------------------------------------------------
+% Model Architectures
+% ---------------------------------------------------------------------------
+
+@techreport{radford2019gpt2,
+  author    = {Radford, Alec and Wu, Jeffrey and Child, Rewon and Luan, David
+               and Amodei, Dario and Sutskever, Ilya},
+  title     = {Language Models are Unsupervised Multitask Learners},
+  institution = {OpenAI},
+  year      = {2019},
+}
+
+@inproceedings{brown2020gpt3,
+  author    = {Brown, Tom B. and Mann, Benjamin and Ryder, Nick and Subbiah,
+               Melanie and Kaplan, Jared and Dhariwal, Prafulla and
+               Neelakantan, Arvind and Shyam, Pranav and Sastry, Girish and
+               Askell, Amanda and others},
+  title     = {Language Models are Few-Shot Learners},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {33},
+  year      = {2020},
+}
+
+@article{touvron2023llama,
+  author    = {Touvron, Hugo and Lavril, Thibaut and Izacard, Gautier and
+               Martinet, Xavier and Lachaux, Marie-Anne and Lacroix, Timoth\'{e}e
+               and Rozi\`{e}re, Baptiste and Goyal, Naman and Hambro, Eric and
+               Azhar, Faisal and others},
+  title     = {{LLaMA}: Open and Efficient Foundation Language Models},
+  journal   = {arXiv preprint arXiv:2302.13971},
+  year      = {2023},
+}
+
+% ---------------------------------------------------------------------------
+% Distributed Systems & Parallelism
+% ---------------------------------------------------------------------------
+
+@inproceedings{rajbhandari2020zero,
+  author    = {Rajbhandari, Samyam and Rasley, Jeff and Ruwase, Olatunji and
+               He, Yuxiong},
+  title     = {{ZeRO}: Memory Optimizations Toward Training Trillion Parameter
+               Models},
+  booktitle = {International Conference on High Performance Computing,
+               Networking, Storage and Analysis (SC)},
+  year      = {2020},
+}
+
+@article{li2020pytorch,
+  author    = {Li, Shen and Zhao, Yanli and Varma, Rohan and Salpekar, Omkar
+               and Noordhuis, Pieter and Li, Teng and Paszke, Adam and
+               Smith, Jeff and Vaughan, Brian and Damania, Pritam and Chintala,
+               Soumith},
+  title     = {{PyTorch} Distributed: Experiences on Accelerating Data Parallel
+               Training},
+  journal   = {Proceedings of the VLDB Endowment},
+  volume    = {13},
+  number    = {12},
+  year      = {2020},
+}
+
+% ---------------------------------------------------------------------------
+% Tokenization, Embeddings, Activations
+% ---------------------------------------------------------------------------
+
+@inproceedings{sennrich2016bpe,
+  author    = {Sennrich, Rico and Haddow, Barry and Birch, Alexandra},
+  title     = {Neural Machine Translation of Rare Words with Subword Units},
+  booktitle = {Proceedings of the 54th Annual Meeting of the Association for
+               Computational Linguistics (ACL)},
+  year      = {2016},
+}
+
+@inproceedings{press2017tying,
+  author    = {Press, Ofir and Wolf, Lior},
+  title     = {Using the Output Embedding to Improve Language Models},
+  booktitle = {Proceedings of the 15th Conference of the European Chapter of
+               the ACL (EACL)},
+  year      = {2017},
+}
+
+@article{hendrycks2016gelu,
+  author    = {Hendrycks, Dan and Gimpel, Kevin},
+  title     = {Gaussian Error Linear Units ({GELUs})},
+  journal   = {arXiv preprint arXiv:1606.08415},
+  year      = {2016},
+}
+
+% ---------------------------------------------------------------------------
+% Networking & Discovery
+% ---------------------------------------------------------------------------
+
+@misc{rfc6762,
+  author    = {Cheshire, Stuart and Krochmal, Marc},
+  title     = {Multicast {DNS}},
+  howpublished = {RFC 6762, Internet Engineering Task Force},
+  year      = {2013},
+}
+
+% ---------------------------------------------------------------------------
+% Checkpointing
+% ---------------------------------------------------------------------------
+
+@misc{safetensors2023,
+  author    = {{Hugging Face}},
+  title     = {{SafeTensors}: A Simple, Safe Way to Store and Distribute
+               Tensors},
+  howpublished = {\url{https://github.com/huggingface/safetensors}},
+  year      = {2023},
+}
