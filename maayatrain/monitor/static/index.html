@@ -430,18 +430,36 @@
         // --- Peers ---
         function updatePeers(peers) {
             const tbody = document.getElementById('peerTableBody');
-            if (!peers || peers.length === 0) {
+            // Handle both dict {id: info} and array [{...}] formats
+            let peerList;
+            if (Array.isArray(peers)) {
+                peerList = peers;
+            } else if (peers && typeof peers === 'object') {
+                peerList = Object.entries(peers).map(([id, info]) => ({
+                    id: id,
+                    status: 'active',
+                    device_name: info.device_name || info.address || id.slice(0,8),
+                    memory_gb: info.memory_gb || 0,
+                    compute_tflops: info.compute_tflops || 0,
+                    rtt_ms: info.rtt_ms || 0,
+                    ...info,
+                }));
+            } else {
+                peerList = [];
+            }
+
+            if (peerList.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="icon">📡</div>Waiting for peers…</td></tr>';
                 updatePeerCount(0);
                 return;
             }
-            updatePeerCount(peers.length);
-            tbody.innerHTML = peers.map(p => `
+            updatePeerCount(peerList.length);
+            tbody.innerHTML = peerList.map(p => `
                 <tr class="fade-in">
                     <td><span class="dot dot-active"></span>${p.status || 'active'}</td>
-                    <td>${p.device_name || 'unknown'}</td>
-                    <td>${(p.memory_gb || 0).toFixed(1)} GB</td>
-                    <td>${(p.compute_tflops || 0).toFixed(1)}</td>
+                    <td>${p.device_name || p.address || 'unknown'}</td>
+                    <td>${p.memory_gb ? p.memory_gb.toFixed(1) + ' GB' : (p.rtt_ms ? p.rtt_ms + ' ms' : 'N/A')}</td>
+                    <td>${p.compute_tflops ? p.compute_tflops.toFixed(1) : (p.address || 'N/A')}</td>
                 </tr>
             `).join('');
         }
@@ -497,6 +515,8 @@
                     case 'metric':
                         addLossPoint(msg.step, msg.loss);
                         updateStats(msg);
+                        if (msg.peer_count !== undefined) updatePeerCount(msg.peer_count);
+                        if (msg.peers) updatePeers(msg.peers);
                         break;
 
                     case 'cluster':

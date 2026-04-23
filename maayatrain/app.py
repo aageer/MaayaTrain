@@ -432,7 +432,19 @@ def quickstart(
 
         dash_app = create_dashboard_app()
         def _on_metrics(m):
-            push_metrics(dash_app, m.step, m.loss, m.tokens_per_sec, m.lr)
+            # Build peer info dict from the orchestrator's live connections
+            peer_info = {}
+            for pid, conn in orch.server.peers.items():
+                peer_info[pid] = {
+                    "address": conn.address,
+                    "connected_at": conn.connected_at,
+                    "rtt_ms": round(conn.avg_rtt_ms, 1),
+                }
+            # Also include info from the cluster state if available
+            for pid, info in orch.cluster.peers.items():
+                if pid in peer_info:
+                    peer_info[pid].update(info)
+            push_metrics(dash_app, m.step, m.loss, m.tokens_per_sec, m.lr, peers=peer_info)
         orch.on_metrics = _on_metrics
 
         def _run_dash():

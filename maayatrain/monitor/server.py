@@ -94,9 +94,16 @@ async def broadcast_to_dashboard(app: FastAPI, message: Dict[str, Any]) -> None:
         app.state.ws_clients.discard(ws)
 
 
-def push_metrics(app: FastAPI, step: int, loss: float, tokens_per_sec: float, lr: float) -> None:
+def push_metrics(
+    app: FastAPI,
+    step: int,
+    loss: float,
+    tokens_per_sec: float,
+    lr: float,
+    peers: Optional[Dict[str, Any]] = None,
+) -> None:
     """Record a training step metric and schedule broadcast."""
-    entry = {
+    entry: Dict[str, Any] = {
         "type": "metric",
         "step": step,
         "loss": loss,
@@ -104,6 +111,15 @@ def push_metrics(app: FastAPI, step: int, loss: float, tokens_per_sec: float, lr
         "lr": lr,
         "timestamp": time.time(),
     }
+
+    # Include peer info if available
+    if peers is not None:
+        entry["peers"] = peers
+        entry["peer_count"] = len(peers)
+    else:
+        entry["peer_count"] = 0
+        entry["peers"] = {}
+
     app.state.metrics_buffer.append(entry)
 
     # Keep buffer bounded
