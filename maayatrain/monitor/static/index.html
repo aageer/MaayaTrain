@@ -18,11 +18,24 @@
 --violet:#8b5cf6;--amber:#f59e0b;--rose:#f43f5e;
 --cyan:#06b6d4;--lime:#84cc16;
 --r:12px;--r2:16px;
+--chart-grid:rgba(46,46,51,.4);--shadow:rgba(0,0,0,.3);
 }
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+[data-theme="light"]{
+--bg:#f4f4f5;--bg2:#ffffff;--bg3:#e4e4e7;--bg4:#d4d4d8;
+--border:#d4d4d8;--border2:#a1a1aa;
+--text:#18181b;--text2:#3f3f46;--text3:#71717a;
+--emerald:#059669;--emerald-bg:rgba(5,150,105,.1);
+--blue:#2563eb;--blue-bg:rgba(37,99,235,.08);
+--violet:#7c3aed;--amber:#d97706;--rose:#e11d48;
+--cyan:#0891b2;--lime:#65a30d;
+--chart-grid:rgba(0,0,0,.08);--shadow:rgba(0,0,0,.06);
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
 
 /* NAV */
-.nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:50;backdrop-filter:blur(16px)}
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:50;backdrop-filter:blur(16px);transition:background .3s}
+.theme-toggle{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:.2s}
+.theme-toggle:hover{border-color:var(--emerald);transform:scale(1.05)}
 .nav-left{display:flex;align-items:center;gap:16px}
 .logo{font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px}
 .logo svg{width:24px;height:24px}
@@ -41,7 +54,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 
 /* STAT CARDS */
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
-.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:.2s}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:all .2s}
+[data-theme="light"] .stat{box-shadow:0 1px 3px var(--shadow)}
+[data-theme="light"] .card{box-shadow:0 1px 4px var(--shadow)}
 .stat:hover{border-color:var(--border2);transform:translateY(-1px)}
 .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:10px}
 .stat-val{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1}
@@ -168,6 +183,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
  </div>
  <div class="nav-right">
   <button class="btn btn-danger" id="stopBtn" onclick="stopTraining()" style="display:none">⏹ Stop</button>
+  <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
   <span id="statusBadge" class="badge badge-off">Disconnected</span>
   <span>v0.3.0</span>
  </div>
@@ -485,8 +501,25 @@ async function loadJoinInfo(){
  }catch(e){}
 }
 
+// --- Theme Toggle ---
+function toggleTheme(){
+ const html=document.documentElement;
+ const cur=html.getAttribute('data-theme');
+ const next=cur==='light'?'dark':'light';
+ html.setAttribute('data-theme',next==='dark'?'':'light');
+ document.getElementById('themeBtn').textContent=next==='light'?'☀️':'🌙';
+ localStorage.setItem('maayatrain-theme',next);
+}
+// Restore saved theme
+(function(){
+ const saved=localStorage.getItem('maayatrain-theme');
+ if(saved==='light'){
+  document.documentElement.setAttribute('data-theme','light');
+  document.getElementById('themeBtn').textContent='☀️';
+ }
+})();
+
 initChart();connect();
 </script>
 </body>
 </html>
-
