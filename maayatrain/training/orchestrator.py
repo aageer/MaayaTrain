@@ -154,34 +154,44 @@ class Orchestrator:
         # 2b. Another flush — give workers time to receive weights
         await asyncio.sleep(0.1)
 
-        # 3. Run local inner loop (coordinator also trains)
+        # 3. Run local inner loop in a thread so asyncio stays responsive
+        #    (train_steps is synchronous — without this, peer connections
+        #     queue up and can't be processed until the round ends)
         self.diloco.reset_inner_optimizer()
+
+        loop = asyncio.get_running_loop()
 
         if sync_mode == "time":
             window = self.settings.diloco.sync_window_seconds
-            metrics, own_local_steps = train_steps_timed(
-                self.model,
-                self.diloco.inner_optimizer,
-                self.dataset,
-                window_seconds=window,
-                batch_size=self.settings.training.batch_size,
-                device=self.device,
-                start_step=self.global_step,
-                log_every=self.settings.training.log_every,
-                on_step=self.on_metrics,
-                estimated_steps=H,
+            metrics, own_local_steps = await loop.run_in_executor(
+                None,
+                lambda: train_steps_timed(
+                    self.model,
+                    self.diloco.inner_optimizer,
+                    self.dataset,
+                    window_seconds=window,
+                    batch_size=self.settings.training.batch_size,
+                    device=self.device,
+                    start_step=self.global_step,
+                    log_every=self.settings.training.log_every,
+                    on_step=self.on_metrics,
+                    estimated_steps=H,
+                ),
             )
         else:
-            metrics = train_steps(
-                self.model,
-                self.diloco.inner_optimizer,
-                self.dataset,
-                num_steps=H,
-                batch_size=self.settings.training.batch_size,
-                device=self.device,
-                start_step=self.global_step,
-                log_every=self.settings.training.log_every,
-                on_step=self.on_metrics,
+            metrics = await loop.run_in_executor(
+                None,
+                lambda: train_steps(
+                    self.model,
+                    self.diloco.inner_optimizer,
+                    self.dataset,
+                    num_steps=H,
+                    batch_size=self.settings.training.batch_size,
+                    device=self.device,
+                    start_step=self.global_step,
+                    log_every=self.settings.training.log_every,
+                    on_step=self.on_metrics,
+                ),
             )
             own_local_steps = H
 
