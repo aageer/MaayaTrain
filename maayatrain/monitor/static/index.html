@@ -113,8 +113,35 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .progress-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:8px}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--emerald),var(--cyan));border-radius:2px;transition:width .3s;width:0%}
 
+/* BUTTONS */
+.btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{transform:translateY(-1px)}
+.btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+.btn-danger:hover{box-shadow:0 4px 12px rgba(239,68,68,.3)}
+.btn-primary{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#000;font-weight:700}
+.btn-primary:hover{box-shadow:0 4px 12px rgba(16,185,129,.3)}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+
+/* JOIN PORTAL */
+.join-section{display:none}
+.join-section.active{display:flex;flex-direction:column;gap:16px}
+.studio-section{display:flex;flex-direction:column;gap:16px}
+.studio-section:not(.active){display:none}
+.join-hero{text-align:center;padding:24px 0}
+.join-hero h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.join-hero p{color:var(--text3);font-size:14px}
+.cmd-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:.2s}
+.cmd-box:hover{border-color:var(--emerald);background:rgba(16,185,129,.04)}
+.cmd-box code{color:var(--emerald);word-break:break-all}
+.cmd-copy{color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;font-family:'Inter',sans-serif;font-weight:600}
+.join-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.join-step{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
+.join-step-num{width:28px;height:28px;border-radius:50%;background:var(--emerald-bg);color:var(--emerald);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:8px}
+.join-step h4{font-size:13px;font-weight:600;margin-bottom:4px}
+.join-step p{font-size:11px;color:var(--text3)}
+
 /* RESPONSIVE */
-@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.row2,.row-model{grid-template-columns:1fr}}
+@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.row2,.row-model{grid-template-columns:1fr}.join-steps{grid-template-columns:1fr}}
 @media(max-width:600px){.stats{grid-template-columns:1fr}.nav{padding:0 12px}.main{padding:12px}}
 
 /* ANIMATIONS */
@@ -134,18 +161,60 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
    <span class="logo-text">MaayaTrain</span>
   </div>
   <div class="nav-tabs">
-   <div class="nav-tab active">Studio</div>
-   <div class="nav-tab">Logs</div>
-   <div class="nav-tab">Config</div>
+   <div class="nav-tab active" data-tab="studio" onclick="switchTab('studio')">Studio</div>
+   <div class="nav-tab" data-tab="join" onclick="switchTab('join')">Join Network</div>
+   <div class="nav-tab" data-tab="logs" onclick="switchTab('logs')">Logs</div>
   </div>
  </div>
  <div class="nav-right">
+  <button class="btn btn-danger" id="stopBtn" onclick="stopTraining()" style="display:none">⏹ Stop</button>
   <span id="statusBadge" class="badge badge-off">Disconnected</span>
   <span>v0.3.0</span>
  </div>
 </nav>
 
 <main class="main">
+
+<!-- JOIN NETWORK TAB (hidden by default) -->
+<div class="join-section" id="joinSection">
+ <div class="card">
+  <div class="card-head"><div class="card-title">Join Training Network</div></div>
+  <div class="card-body">
+   <div class="join-hero">
+    <h2>⚡ Join This Training Session</h2>
+    <p>Any Mac on the same Wi-Fi can contribute compute power</p>
+   </div>
+   <div class="join-steps">
+    <div class="join-step"><div class="join-step-num">1</div><h4>Open Terminal</h4><p>On the Mac that wants to join</p></div>
+    <div class="join-step"><div class="join-step-num">2</div><h4>Run Command</h4><p>Copy the one-liner below</p></div>
+    <div class="join-step"><div class="join-step-num">3</div><h4>Start Training</h4><p>Weights sync automatically</p></div>
+   </div>
+   <div style="margin-top:16px">
+    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600">One-Line Install + Join</div>
+    <div class="cmd-box" id="cmdOneLiner" onclick="copyCmd(this)">
+     <code id="joinCmd">Loading...</code>
+     <span class="cmd-copy">📋 Click to copy</span>
+    </div>
+   </div>
+   <div style="margin-top:12px">
+    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600">Or curl auto-join</div>
+    <div class="cmd-box" id="cmdCurl" onclick="copyCmd(this)">
+     <code id="curlCmd">Loading...</code>
+     <span class="cmd-copy">📋 Click to copy</span>
+    </div>
+   </div>
+   <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
+    <div class="config-item" style="flex:1"><div class="config-label">Coordinator IP</div><div class="config-value" id="joinIP">—</div></div>
+    <div class="config-item" style="flex:1"><div class="config-label">Port</div><div class="config-value" id="joinPort">7471</div></div>
+    <div class="config-item" style="flex:1"><div class="config-label">Model</div><div class="config-value" id="joinModel">—</div></div>
+    <div class="config-item" style="flex:1"><div class="config-label">Dashboard</div><div class="config-value" id="joinDash">—</div></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- STUDIO TAB -->
+<div class="studio-section active" id="studioSection">
 
 <!-- STATS ROW -->
 <div class="stats fade-up">
@@ -248,6 +317,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
  </div>
 </div>
 
+</div><!-- end studio-section -->
+
 </main>
 
 <script>
@@ -347,8 +418,8 @@ function addCheckpoint(c){
 function connect(){
  const proto=location.protocol==='https:'?'wss:':'ws:';
  ws=new WebSocket(`${proto}//${location.host}/ws`);
- ws.onopen=()=>{const b=document.getElementById('statusBadge');b.textContent='Live';b.className='badge badge-live';addLog('sync','Dashboard connected to coordinator')};
- ws.onclose=()=>{const b=document.getElementById('statusBadge');b.textContent='Disconnected';b.className='badge badge-off';setTimeout(connect,3000)};
+ ws.onopen=()=>{const b=document.getElementById('statusBadge');b.textContent='Live';b.className='badge badge-live';document.getElementById('stopBtn').style.display='';addLog('sync','Dashboard connected to coordinator');loadJoinInfo()};
+ ws.onclose=()=>{const b=document.getElementById('statusBadge');b.textContent='Disconnected';b.className='badge badge-off';document.getElementById('stopBtn').style.display='none';setTimeout(connect,3000)};
  ws.onmessage=(e)=>{
   const m=JSON.parse(e.data);
   switch(m.type){
@@ -368,7 +439,49 @@ function connect(){
  };
 }
 
+// --- Tab Switching ---
+function switchTab(tab){
+ document.querySelectorAll('.nav-tab').forEach(t=>{t.classList.toggle('active',t.dataset.tab===tab)});
+ document.getElementById('studioSection').classList.toggle('active',tab==='studio'||tab==='logs');
+ document.getElementById('joinSection').classList.toggle('active',tab==='join');
+}
+
+// --- Copy to Clipboard ---
+function copyCmd(el){
+ const code=el.querySelector('code');
+ navigator.clipboard.writeText(code.textContent).then(()=>{
+  const btn=el.querySelector('.cmd-copy');
+  btn.textContent='✅ Copied!';
+  setTimeout(()=>{btn.textContent='📋 Click to copy'},2000);
+ });
+}
+
+// --- Stop Training ---
+async function stopTraining(){
+ if(!confirm('Stop training after current round?'))return;
+ try{
+  const r=await fetch('/api/training/stop',{method:'POST'});
+  const d=await r.json();
+  addLog('sync',d.message||'Stop requested');
+ }catch(e){addLog('sync','Failed to stop: '+e.message)}
+}
+
+// --- Load Join Info ---
+async function loadJoinInfo(){
+ try{
+  const r=await fetch('/api/join');
+  const d=await r.json();
+  document.getElementById('joinCmd').textContent=d.one_liner;
+  document.getElementById('curlCmd').textContent=d.curl_join;
+  document.getElementById('joinIP').textContent=d.coordinator_ip;
+  document.getElementById('joinPort').textContent=d.coordinator_port;
+  document.getElementById('joinModel').textContent=d.model;
+  document.getElementById('joinDash').textContent=d.dashboard_url;
+ }catch(e){}
+}
+
 initChart();connect();
 </script>
 </body>
 </html>
+

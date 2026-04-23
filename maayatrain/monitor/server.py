@@ -5,8 +5,11 @@ Serves a real-time web UI at ``http://localhost:8471`` showing:
 - Connected peers table
 - Throughput metrics
 - Checkpoint timeline
+- **Training controls** (start/stop/config from browser)
+- **Worker join portal** (one-click command for LAN peers)
 
 Data is pushed via WebSocket for immediate updates.
+API endpoints let the browser act as a full control panel.
 """
 
 from __future__ import annotations
@@ -14,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import socket
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -27,15 +31,32 @@ logger = logging.getLogger("maayatrain.monitor")
 STATIC_DIR = Path(__file__).parent / "static"
 
 
+def _get_local_ip() -> str:
+    """Get the LAN IP so workers know where to connect."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
 def create_dashboard_app() -> FastAPI:
     """Create the FastAPI dashboard application."""
-    app = FastAPI(title="MaayaTrain Dashboard", version="0.1.0")
+    app = FastAPI(title="MaayaTrain Dashboard", version="0.3.0")
 
     # Shared state
     app.state.metrics_buffer: List[Dict[str, Any]] = []
     app.state.cluster_info: Dict[str, Any] = {}
     app.state.checkpoints: List[Dict[str, Any]] = []
     app.state.ws_clients: Set[WebSocket] = set()
+    # Training control references (set by orchestrator on startup)
+    app.state.orchestrator = None
+    app.state.training_config: Dict[str, Any] = {}
+    app.state.training_active: bool = False
+    app.state.start_time: float = time.time()
 
     @app.get("/", response_class=HTMLResponse)
     async def index():
@@ -57,12 +78,13 @@ def create_dashboard_app() -> FastAPI:
                 "metrics": app.state.metrics_buffer[-100:],
                 "cluster": app.state.cluster_info,
                 "checkpoints": app.state.checkpoints,
+                "config": app.state.training_config,
+                "training_active": app.state.training_active,
             })
 
             # Keep alive — read messages (e.g. commands from dashboard)
             while True:
                 data = await ws.receive_text()
-                # Could handle pause/resume commands here
                 logger.debug("Received from dashboard: %s", data)
 
         except WebSocketDisconnect:
@@ -71,13 +93,70 @@ def create_dashboard_app() -> FastAPI:
             app.state.ws_clients.discard(ws)
             logger.info("Dashboard client disconnected (%d remaining)", len(app.state.ws_clients))
 
+    # ----------------------------------------------------------------
+    # REST API — Training Control (Unsloth Studio pattern)
+    # ----------------------------------------------------------------
+
     @app.get("/api/status")
     async def status():
+        """Full cluster status for the dashboard."""
+        uptime = time.time() - app.state.start_time
         return {
-            "status": "ok",
+            "status": "training" if app.state.training_active else "idle",
+            "uptime_seconds": round(uptime),
             "cluster": app.state.cluster_info,
             "latest_metrics": app.state.metrics_buffer[-1] if app.state.metrics_buffer else None,
+            "total_steps": app.state.metrics_buffer[-1].get("step", 0) if app.state.metrics_buffer else 0,
         }
+
+    @app.get("/api/config")
+    async def get_config():
+        """Return current training configuration for UI display."""
+        return app.state.training_config
+
+    @app.get("/api/join")
+    async def join_info():
+        """Return everything a worker needs to join this training session."""
+        local_ip = _get_local_ip()
+        port = app.state.training_config.get("port", 7471)
+        model = app.state.training_config.get("model", "gpt2-tiny")
+        repo = "https://github.com/aageer/MaayaTrain.git"
+        return {
+            "coordinator_ip": local_ip,
+            "coordinator_port": port,
+            "model": model,
+            "dashboard_url": f"http://{local_ip}:8471",
+            "install_command": f"pip install git+{repo}",
+            "join_command": "maayatrain quickstart join",
+            "one_liner": f"pip install git+{repo} && maayatrain quickstart join",
+            "curl_join": f"curl -s http://{local_ip}:8471/join.sh | bash",
+        }
+
+    @app.get("/join.sh")
+    async def join_script():
+        """Serve a shell script that auto-installs and joins training."""
+        local_ip = _get_local_ip()
+        repo = "https://github.com/aageer/MaayaTrain.git"
+        script = f"""#!/bin/bash
+# MaayaTrain Auto-Join Script
+# Run: curl -s http://{local_ip}:8471/join.sh | bash
+set -e
+echo "⚡ Installing MaayaTrain..."
+pip install -q git+{repo}
+echo "🔗 Joining coordinator at {local_ip}..."
+maayatrain quickstart join
+"""
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(script, media_type="text/x-shellscript")
+
+    @app.post("/api/training/stop")
+    async def stop_training():
+        """Signal the training loop to stop gracefully."""
+        if app.state.orchestrator and hasattr(app.state.orchestrator, '_stop_requested'):
+            app.state.orchestrator._stop_requested = True
+            app.state.training_active = False
+            return {"status": "stopping", "message": "Training will stop after current round"}
+        return {"status": "error", "message": "No active training to stop"}
 
     return app
 
@@ -153,3 +232,4 @@ def push_checkpoint(app: FastAPI, step: int, loss: float, path: str) -> None:
         loop.create_task(broadcast_to_dashboard(app, {"type": "checkpoint", **entry}))
     except RuntimeError:
         pass
+
