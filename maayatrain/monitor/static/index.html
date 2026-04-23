@@ -446,14 +446,19 @@ function switchTab(tab){
  document.getElementById('joinSection').classList.toggle('active',tab==='join');
 }
 
-// --- Copy to Clipboard ---
+// --- Copy to Clipboard (works on HTTP, not just HTTPS) ---
 function copyCmd(el){
  const code=el.querySelector('code');
- navigator.clipboard.writeText(code.textContent).then(()=>{
+ const text=code.textContent;
+ const ta=document.createElement('textarea');
+ ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';
+ document.body.appendChild(ta);ta.select();
+ try{document.execCommand('copy');
   const btn=el.querySelector('.cmd-copy');
   btn.textContent='✅ Copied!';
   setTimeout(()=>{btn.textContent='📋 Click to copy'},2000);
- });
+ }catch(e){}
+ document.body.removeChild(ta);
 }
 
 // --- Stop Training ---
