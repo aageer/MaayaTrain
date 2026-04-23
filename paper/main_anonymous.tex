@@ -518,6 +518,28 @@ connection pooling, peer ID management, broadcast primitives, and a heartbeat
 mechanism that simultaneously serves as the RTT probe for dynamic sharding
 (Section~\ref{sec:dynamic-sharding}).
 
+\textbf{Chunked Payload Streaming.} Compressed model weights for a 124M
+parameter model produce payloads of 5--6\,MB even after INT8+zstd
+compression. Reading such payloads via a single \texttt{readexactly(N)} call
+saturates the kernel TCP receive buffer on commodity Wi-Fi, blocking the
+\texttt{asyncio} event loop and starving concurrent heartbeat coroutines.
+We address this with \emph{chunked streaming}: payloads exceeding a
+configurable threshold ($\tau_{\text{chunk}}{=}256$\,KB) are read in
+fixed-size chunks of 512\,KB via iterative \texttt{readexactly} calls,
+yielding control back to the event loop between chunks. This prevents
+heartbeat starvation on high-latency links.
+
+\textbf{Transfer-Aware Heartbeat Suppression.} Large weight transfers can
+span 3--5 seconds over Wi-Fi~6. During this window, the sending peer
+cannot process incoming heartbeat probes, causing the receiver's stale-peer
+detector to erroneously mark the connection as dead. We introduce a
+\texttt{\_transferring} flag that suppresses the heartbeat timeout check
+during active payload transmission. The heartbeat stale threshold is set to
+$6\times$ the heartbeat interval (default 30\,s) to accommodate Wi-Fi
+latency variance. Write operations are serialized via an
+\texttt{asyncio.Lock} to prevent frame interleaving between concurrent
+heartbeat and data transmissions on the same TCP socket.
+
 \textbf{Compression Pipeline.} The tensor codec
 (Section~\ref{sec:blockwise-int8}) supports three modes: FP16+zstd
 (4--6$\times$), block-wise INT8+zstd (8--12$\times$), and zstd-only
@@ -529,6 +551,23 @@ Zero-configuration LAN discovery via mDNS/DNS-SD~\cite{rfc6762}: the
 coordinator advertises a \texttt{\_maayatrain.\_tcp.local.} service. Workers
 browse and connect automatically. An HTTP relay client provides WAN
 fallback.
+
+\subsection{Monitoring Dashboard}
+
+MaayaTrain includes a real-time web-based training control panel served via
+FastAPI at port 8471, accessible from any device on the local network. The
+dashboard provides: (i)~live training metrics including loss curve, learning
+rate, and throughput via Chart.js with exponential smoothing
+($\alpha{=}0.92$); (ii)~connected device cards showing per-peer memory,
+compute TFLOPS, chip type, and connection status; (iii)~a data transfer
+event log for observing weight synchronization and gradient exchanges in
+real time; and (iv)~a \emph{Worker Join Portal} that auto-detects the
+coordinator's LAN IP address and presents one-click copyable install and
+join commands, enabling zero-configuration onboarding of new compute
+contributors. Training can be stopped gracefully from the browser via a
+REST endpoint (\texttt{POST /api/training/stop}), following the pattern
+established by local training UIs such as Unsloth Studio. WebSocket
+push ensures sub-second metric delivery without polling overhead.
 
 \subsection{Checkpointing}
 
