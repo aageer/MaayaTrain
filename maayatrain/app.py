@@ -440,10 +440,13 @@ def quickstart(
                     "connected_at": conn.connected_at,
                     "rtt_ms": round(conn.avg_rtt_ms, 1),
                 }
-            # Also include info from the cluster state if available
-            for pid, info in orch.cluster.peers.items():
+            # Merge info from cluster state (PeerInfo dataclass)
+            for pid, pinfo in orch.cluster.peers.items():
                 if pid in peer_info:
-                    peer_info[pid].update(info)
+                    peer_info[pid]["device_name"] = pinfo.device_name
+                    peer_info[pid]["memory_gb"] = pinfo.memory_gb
+                    peer_info[pid]["compute_tflops"] = pinfo.compute_tflops
+                    peer_info[pid]["status"] = pinfo.status
             push_metrics(dash_app, m.step, m.loss, m.tokens_per_sec, m.lr, peers=peer_info)
         orch.on_metrics = _on_metrics
 
